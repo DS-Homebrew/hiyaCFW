@@ -1,4 +1,4 @@
-![alt tag](https://github.com/Robz8/hiyaCFW/blob/master/logo/logo.png)
+![alt tag](https://github.com/RocketRobz/hiyaCFW/blob/master/logo/logo.png)
 # hiyaCFW
 World's FIRST Nintendo DSi CFW!
 
