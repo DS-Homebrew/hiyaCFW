@@ -46,7 +46,6 @@ script:
   - mv bootcode.dsi hiya.dsi
   - mkdir hiyaCFW/
   - cp hiya.dsi hiyaCFW/
-  - cp hiyaCFW.nds hiyaCFW/
   - 7z a hiyaCFW.7z hiyaCFW/
   
 addons:
@@ -60,12 +59,12 @@ addons:
     - lftp
 
 #after_success:
-#  - curl -o send.sh https://raw.githubusercontent.com/DiscordHooks/travis-ci-discord-webhook/master/send.sh
+#  - curl -o send.sh https://raw.githubusercontent.com/DS-Homebrew/travis-ci-discord-webhook/master/send.sh
 #  - chmod +x send.sh
 #  - ./send.sh success $WEBHOOK_URL
 
 #after_failure:
-#  - curl -o send.sh https://raw.githubusercontent.com/DiscordHooks/travis-ci-discord-webhook/master/send.sh
+#  - curl -o send.sh https://raw.githubusercontent.com/DS-Homebrew/travis-ci-discord-webhook/master/send.sh
 #  - chmod +x send.sh
 #  - ./send.sh failure $WEBHOOK_URL
 
