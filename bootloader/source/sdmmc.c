@@ -60,8 +60,8 @@ void sdmmc_send_command(struct mmcdevice *ctx, uint32_t cmd, uint32_t args) {
     sdmmc_write16(REG_SDCMD,cmd &0xFFFF);
 
     uint32_t size = ctx->size;
-    uint16_t *dataPtr = (uint16_t*)ctx->rData;
-    uint32_t *dataPtr32 = (uint32_t*)ctx->rData;
+    uint16_t *dataPtr = (uint16_t*)ctx->data;
+    uint32_t *dataPtr32 = (uint32_t*)ctx->data;
 
     bool useBuf = ( NULL != dataPtr );
     bool useBuf32 = (useBuf && (0 == (3 & ((uint32_t)dataPtr))));
@@ -293,7 +293,7 @@ int sdmmc_sdcard_readsectors(u32 sector_no, u32 numsectors, void *out) {
 #endif
 
     sdmmc_write16(REG_SDBLKCOUNT,numsectors);
-    deviceSD.rData = out;
+    deviceSD.data = out;
     deviceSD.size = numsectors << 9;
     sdmmc_send_command(&deviceSD,0x33C12,sector_no);
     return geterror(&deviceSD);
