@@ -1,5 +1,5 @@
 ![alt tag](https://github.com/RocketRobz/hiyaCFW/blob/master/logo/logo.png)
-# hiyaCFW
+# hiyaCFW ! #[travis](https://travis-ci.org/FlameAlt53/hiyaCFW.svg?branch=unlaunch)
 World's FIRST Nintendo DSi CFW!
 
 With this CFW, you can run custom DSiWare, alongside region free and 3DS-exclusive DSiWare (WarioWare Touched), on your SD card, via NAND to SD redirection!    
