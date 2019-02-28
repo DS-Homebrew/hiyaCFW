@@ -58,7 +58,7 @@ before_deploy:
   - git config --local user.name "TWLBot"
   - git clone https://$GITHUB_TOKEN@github.com/TWLBot/Builds.git
   - cd Builds/extras
-  - cp ../hiyaCFW.7z hiyaCFW.7z
+  - cp ../../hiyaCFW.7z hiyaCFW.7z
   - git stage .
   - git commit -m "hiyaCFW | $COMMIT_TAG"
   - git push origin master
