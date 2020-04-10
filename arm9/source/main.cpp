@@ -376,7 +376,7 @@ int main( int argc, char **argv) {
 			consoleClear();
 			printf("Error!\n");
 			printf("\n");
-			printf("Launcher's title.tmd is\n");
+			printf("Launcher's title.tmd was\n");
 			printf("not found!\n");
 			consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
 			consoleClear();
