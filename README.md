@@ -7,21 +7,20 @@
   </span>
   <span style="padding-left: 5px;">
   <a href="https://discord.gg/yD3spjv">
-   <img src="https://img.shields.io/badge/Discord%20Server-%23other--homebrew-green.svg">
+   <img src="https://img.shields.io/badge/Discord%20Server-%23other--ds--homebrew-green.svg">
   </a>
   </span>
 </p>
 
-HiyaCFW is the world's FIRST Nintendo DSi CFW, made by the talented folks over on our Rocket.Chat server.
+HiyaCFW is a custom firmware for the Nintendo DSi.
 
 # Features
 
-- Run custom DSiWare
 - Have NAND to SD card redirection
-- Replace the system menu with TWiLightMenu++
+- Automatically boot into an application
+- Safely install custom Nintendo DSi titles to your System Menu
 - Run blocked flashcards (such as R4 Ultra)
-- Remove Region-Locking
-- Run 3DS-exclusive DSiWare (such as WarioWare Touched)
+- Region-Lock removal
 
 # Compiling
 
