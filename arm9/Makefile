@@ -126,16 +126,16 @@ $(OUTPUT).elf	:	$(OFILES)
 # graphics
 #---------------------------------------------------------------------------------
 topLoad.s			:	../$(IMAGES)/topLoad.bmp
-	grit	$< -gB8 -gzl -fts -gTff00ff -o $@ -q
+	grit	$< -gb -gB8 -gzl -fts -gTff00ff -o $@ -q
 
 subLoad.s			:	../$(IMAGES)/subLoad.bmp
-	grit	$< -gB8 -gzl -fts -gTff00ff -o $@ -q
+	grit	$< -gb -gB8 -gzl -fts -gTff00ff -o $@ -q
 
 topError.s			:	../$(IMAGES)/topError.bmp
-	grit	$< -gB8 -gzl -fts -gTff00ff -o $@ -q
+	grit	$< -gb -gB8 -gzl -fts -gTff00ff -o $@ -q
 
 subError.s			:	../$(IMAGES)/subError.bmp
-	grit	$< -gB8 -gzl -fts -gTff00ff -o $@ -q
+	grit	$< -gb -gB8 -gzl -fts -gTff00ff -o $@ -q
 
 #---------------------------------------------------------------------------------
 %.bin.o	:	%.bin

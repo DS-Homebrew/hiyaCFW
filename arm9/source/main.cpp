@@ -1,29 +1,28 @@
 #include <nds.h>
 #include <fat.h>
-#include <limits.h>
-#include <nds/fifocommon.h>
-
-#include <stdio.h>
 #include <stdarg.h>
 
-#include "nds_loader_arm9.h"
-
 #include "bios_decompress_callback.h"
-
-#include "inifile.h"
 #include "fileOperations.h"
+#include "gif.hpp"
+#include "inifile.h"
+#include "nds_loader_arm9.h"
+#include "tonccpy.h"
 
 #include "topLoad.h"
 #include "subLoad.h"
 #include "topError.h"
 #include "subError.h"
 
+void nocashMessage(const std::string &s, int i) { return nocashMessage((s + std::to_string(i)).c_str()); }
+void nocashMessage(int i) { return nocashMessage(std::to_string(i).c_str()); }
+
 #define CONSOLE_SCREEN_WIDTH 32
 #define CONSOLE_SCREEN_HEIGHT 24
 
-#define TMD_SIZE        0x208
+#define SETTINGS_INI_PATH "sd:/hiya/settings.ini"
 
-bool gotoSettings = false;
+#define TMD_SIZE 0x208
 
 static char tmdBuffer[TMD_SIZE];
 
@@ -31,139 +30,107 @@ bool splash = true;
 bool dsiSplash = false;
 bool titleAutoboot = false;
 
-bool topSplashFound = true;
-bool bottomSplashFound = true;
+bool splashFound[2] = {false};
+bool splashBmp[2] = {false};
 
-void vramcpy_ui (void* dest, const void* src, int size) 
-{
-	u16* destination = (u16*)dest;
-	u16* source = (u16*)src;
-	while (size > 0) {
-		*destination++ = *source++;
-		size-=2;
-	}
-}
+Gif gif[2];
 
-void BootSplashInit() {
-
-	if (topSplashFound || bottomSplashFound) {
-		// Do nothing
-	} else {
-		videoSetMode(MODE_0_2D | DISPLAY_BG0_ACTIVE);
-		videoSetModeSub(MODE_0_2D | DISPLAY_BG0_ACTIVE);
-		vramSetBankA (VRAM_A_MAIN_BG_0x06000000);
-		vramSetBankC (VRAM_C_SUB_BG_0x06200000);
-		REG_BG0CNT = BG_MAP_BASE(0) | BG_COLOR_256 | BG_TILE_BASE(2);
-		REG_BG0CNT_SUB = BG_MAP_BASE(0) | BG_COLOR_256 | BG_TILE_BASE(2);
-		BG_PALETTE[0]=0;
-		BG_PALETTE[255]=0xffff;
-		u16* bgMapTop = (u16*)SCREEN_BASE_BLOCK(0);
-		u16* bgMapSub = (u16*)SCREEN_BASE_BLOCK_SUB(0);
-		for (int i = 0; i < CONSOLE_SCREEN_WIDTH*CONSOLE_SCREEN_HEIGHT; i++) {
-			bgMapTop[i] = (u16)i;
-			bgMapSub[i] = (u16)i;
-		}
-	}
-
-}
-
-static u16 bmpImageBuffer[0x18000/2];
-static u16 outputImageBuffer[2][0x18000/2];
-
-void LoadBMP(bool top) {
+bool loadBMP(bool top) {
 	FILE* file = fopen((top ? "sd:/hiya/splashtop.bmp" : "sd:/hiya/splashbottom.bmp"), "rb");
+	if (!file)
+		return false;
 
-	if (!file) return;
+	// Read width & height
+	fseek(file, 0x12, SEEK_SET);
+	u32 width, height;
+	fread(&width, 1, sizeof(width), file);
+	fread(&height, 1, sizeof(height), file);
 
-	// Start loading
-	fseek(file, 0xe, SEEK_SET);
-	u8 pixelStart = (u8)fgetc(file) + 0xe;
-	fseek(file, pixelStart, SEEK_SET);
-	fread(bmpImageBuffer, 1, 0x18000, file);
-	u16* src = bmpImageBuffer;
-	int x = 0;
-	int y = 191;
-	for (int i=0; i<256*192; i++) {
-		if (x >= 256) {
-			x = 0;
-			y--;
-		}
-		u16 val = *(src++);
-		outputImageBuffer[top][y*256+x] = ((val>>10)&0x1f) | ((val)&(0x1f<<5)) | (val&0x1f)<<10 | BIT(15);
-		x++;
+	if (width > 256 || height > 192) {
+		fclose(file);
+		return false;
 	}
 
+	fseek(file, 0xE, SEEK_SET);
+	fseek(file, fgetc(file) - 1, SEEK_CUR);
+	u16 *bmpImageBuffer = new u16[width * height];
+	fread(bmpImageBuffer, 2, width * height, file);
+	u16 *dst = (top ? BG_GFX : BG_GFX_SUB) + ((192 - ((192 - height) / 2)) * 256) + (256 - width) / 2;
+	u16 *src = bmpImageBuffer;
+	for (uint y = 0; y < height; y++, dst -= 256) {
+		for (uint x = 0; x < width; x++) {
+			u16 val = *(src++);
+			*(dst + x) = ((val >> 10) & 0x1F) | (val & (0x1F << 5)) | (val & 0x1F) << 10 | BIT(15);
+		}
+	}
+
+	delete[] bmpImageBuffer;
 	fclose(file);
+	return true;
 }
 
-void LoadScreen() {
-	if (topSplashFound || bottomSplashFound) {
-		consoleInit(NULL, 0, BgType_Text4bpp, BgSize_T_256x256, 15, 0, true, true);
-		consoleClear();
-		consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
-		consoleClear();
+void bootSplashInit() {
+	// Initialize bitmap background
+	videoSetMode(MODE_3_2D);
+	videoSetModeSub(MODE_3_2D);
+	vramSetBankA(VRAM_A_MAIN_BG);
+	vramSetBankC(VRAM_C_SUB_BG);
+	// Clear these to prevent messing up the main BG
+	vramSetBankH(VRAM_H_LCD);
+	vramSetBankG(VRAM_G_LCD);
 
-		LoadBMP(true);
-		LoadBMP(false);
+	if (splashFound[true] && splashBmp[true])
+		bgInit(3, BgType_Bmp16, BgSize_B16_256x256, 0, 0);
+	else
+		bgInit(3, BgType_Bmp8, BgSize_B8_256x256, 0, 0);
 
-		if (topSplashFound) {
-			// Set up background
-			videoSetMode(MODE_3_2D | DISPLAY_BG3_ACTIVE);
-			vramSetBankD(VRAM_D_MAIN_BG_0x06040000);
-			REG_BG3CNT = BG_MAP_BASE(0) | BG_BMP16_256x256;
-			REG_BG3X = 0;
-			REG_BG3Y = 0;
-			REG_BG3PA = 1<<8;
-			REG_BG3PB = 0;
-			REG_BG3PC = 0;
-			REG_BG3PD = 1<<8;
+	if (splashFound[false] && splashBmp[false])
+		bgInitSub(3, BgType_Bmp16, BgSize_B16_256x256, 0, 0);
+	else
+		bgInitSub(3, BgType_Bmp8, BgSize_B8_256x256, 0, 0);
 
-			dmaCopyWordsAsynch(0, outputImageBuffer[1], BG_GFX, 0x18000);
-		}
-		if (bottomSplashFound) {
-			// Set up background
-			videoSetModeSub(MODE_3_2D | DISPLAY_BG3_ACTIVE);
-			vramSetBankC (VRAM_C_SUB_BG_0x06200000);
-			REG_BG3CNT_SUB = BG_MAP_BASE(0) | BG_BMP16_256x256;
-			REG_BG3X_SUB = 0;
-			REG_BG3Y_SUB = 0;
-			REG_BG3PA_SUB = 1<<8;
-			REG_BG3PB_SUB = 0;
-			REG_BG3PC_SUB = 0;
-			REG_BG3PD_SUB = 1<<8;
+	// Clear backgrounds
+	toncset(BG_GFX, 0, 256 * 256 * (splashBmp[true] ? 2 : 1));
+	toncset(BG_GFX_SUB, 0, 256 * 256 * (splashBmp[false] ? 2 : 1));
+}
 
-			dmaCopyWordsAsynch(1, outputImageBuffer[0], BG_GFX_SUB, 0x18000);
-		}
-	} else {
-		// Display Load Screen
-		swiDecompressLZSSVram ((void*)topLoadTiles, (void*)CHAR_BASE_BLOCK(2), 0, &decompressBiosCallback);
-		swiDecompressLZSSVram ((void*)subLoadTiles, (void*)CHAR_BASE_BLOCK_SUB(2), 0, &decompressBiosCallback);
-		vramcpy_ui (&BG_PALETTE[0], topLoadPal, topLoadPalLen);
-		vramcpy_ui (&BG_PALETTE_SUB[0], subLoadPal, subLoadPalLen);
+void loadScreen() {
+	bootSplashInit();
+
+	// Display Load Screen
+	if (splashBmp[true]) {
+		loadBMP(true);
+	} else if (!splashFound[true]) {
+		tonccpy(&BG_PALETTE[0], topLoadPal, topLoadPalLen);
+		swiDecompressLZSSVram((void*)topLoadBitmap, BG_GFX, 0, &decompressBiosCallback);
+	}
+	if (splashBmp[false]) {
+		loadBMP(false);
+	} else if (!splashFound[false]) {
+		tonccpy(&BG_PALETTE_SUB[0], subLoadPal, subLoadPalLen);
+		swiDecompressLZSSVram((void*)subLoadBitmap, BG_GFX_SUB, 0, &decompressBiosCallback);
 	}
 }
-
-const char* settingsinipath = "sd:/hiya/settings.ini";
 
 int cursorPosition = 0;
 
-void LoadSettings(void) {
+void loadSettings(void) {
 	// GUI
-	CIniFile settingsini( settingsinipath );
+	CIniFile settingsini(SETTINGS_INI_PATH);
 
 	splash = settingsini.GetInt("HIYA-CFW", "SPLASH", 0);
 	dsiSplash = settingsini.GetInt("HIYA-CFW", "DSI_SPLASH", 0);
 	titleAutoboot = settingsini.GetInt("HIYA-CFW", "TITLE_AUTOBOOT", 0);
 }
 
-void SaveSettings(void) {
+void saveSettings(void) {
 	// GUI
-	CIniFile settingsini( settingsinipath );
+	CIniFile settingsini(SETTINGS_INI_PATH);
 
 	settingsini.SetInt("HIYA-CFW", "SPLASH", splash);
 	settingsini.SetInt("HIYA-CFW", "DSI_SPLASH", dsiSplash);
 	settingsini.SetInt("HIYA-CFW", "TITLE_AUTOBOOT", titleAutoboot);
-	settingsini.SaveIniFile(settingsinipath);
+	settingsini.SaveIniFile(SETTINGS_INI_PATH);
 }
 
 void setupConsole() {
@@ -175,227 +142,257 @@ void setupConsole() {
 }
 
 int main( int argc, char **argv) {
-
 	// defaultExceptionHandler();
 
-	if (fatInitDefault()) {
+	if (!fatInitDefault()) {
+		bootSplashInit();
 
-		LoadSettings();
-	
-		gotoSettings = (access("sd:/hiya/settings.ini", F_OK) != 0);
-	
-		scanKeys();
+		// Display Error Screen
+		swiDecompressLZSSVram((void*)topErrorBitmap, BG_GFX, 0, &decompressBiosCallback);
+		swiDecompressLZSSVram((void*)subErrorBitmap, BG_GFX_SUB, 0, &decompressBiosCallback);
+		tonccpy(&BG_PALETTE[0], topErrorPal, topErrorPalLen);
+		tonccpy(&BG_PALETTE_SUB[0], subErrorPal, subErrorPalLen);
 
-		if(keysHeld() & KEY_SELECT) gotoSettings = true;
+		while (1)
+			swiWaitForVBlank();
+	}
 
-		if(gotoSettings) {
-			setupConsole();
+	loadSettings();
 
-			int pressed = 0;
-			bool menuprinted = true;
+	bool gotoSettings = (access("sd:/hiya/settings.ini", F_OK) != 0);
 
-			while(1) {
-				if(menuprinted) {
-					consoleInit(NULL, 0, BgType_Text4bpp, BgSize_T_256x256, 15, 0, true, true);
-					consoleClear();
+	scanKeys();
 
-					printf ("\x1B[46m");
+	if (keysHeld() & KEY_SELECT) gotoSettings = true;
 
-					printf("HiyaCFW v1.3.3 configuration\n");
-					printf("Press A to select, START to save");
-					printf("\n");
+	if (gotoSettings) {
+		setupConsole();
 
-					printf ("\x1B[47m");
+		int pressed = 0;
+		bool menuprinted = true;
 
-					if(cursorPosition == 0) printf ("\x1B[41m");
-					else printf ("\x1B[47m");
+		while (1) {
+			if (menuprinted) {
+				consoleInit(NULL, 0, BgType_Text4bpp, BgSize_T_256x256, 15, 0, true, true);
+				consoleClear();
 
-					printf(" Splash: ");
-					if(splash)
-						printf("Off( ), On(x)");
-					else
-						printf("Off(x), On( )");
-					printf("\n\n");
-					
-					if(cursorPosition == 1) printf ("\x1B[41m");
-					else printf ("\x1B[47m");
+				printf ("\x1B[46m");
 
-					if(dsiSplash)
-						printf(" (x)");
-					else
-						printf(" ( )");
-					printf(" DSi Splash/H&S screen\n");
+				printf("HiyaCFW v1.3.3 configuration\n");
+				printf("Press A to select, START to save");
+				printf("\n");
 
-					if(cursorPosition == 2) printf ("\x1B[41m");
-					else printf ("\x1B[47m");
+				printf ("\x1B[47m");
 
-					if(titleAutoboot)
-						printf(" (x)");
-					else
-						printf(" ( )");
-					printf(" Autoboot title\n");
+				if (cursorPosition == 0) printf ("\x1B[41m");
+				else printf ("\x1B[47m");
 
-					consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
-					consoleClear();
+				printf(" Splash: ");
+				if (splash)
+					printf("Off( ), On(x)");
+				else
+					printf("Off(x), On( )");
+				printf("\n\n");
 
-					printf("\n");
-					if(cursorPosition == 0) {
-						printf(" Enable splash screen.");
-					} else if(cursorPosition == 1) {
-						printf(" Enable showing the DSi Splash/\n");
-						printf(" Health & Safety screen.");
-					} else if(cursorPosition == 2) {
-						printf(" Load title contained in\n");
-						printf(" sd:/hiya/autoboot.bin\n");
-						printf(" instead of the DSi Menu.");
-					}
+				if (cursorPosition == 1) printf ("\x1B[41m");
+				else printf ("\x1B[47m");
 
-					menuprinted = false;
+				if (dsiSplash)
+					printf(" (x)");
+				else
+					printf(" ( )");
+				printf(" DSi Splash/H&S screen\n");
+
+				if (cursorPosition == 2) printf ("\x1B[41m");
+				else printf ("\x1B[47m");
+
+				if (titleAutoboot)
+					printf(" (x)");
+				else
+					printf(" ( )");
+				printf(" Autoboot title\n");
+
+				consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
+				consoleClear();
+
+				printf("\n");
+				if (cursorPosition == 0) {
+					printf(" Enable splash screen.");
+				} else if (cursorPosition == 1) {
+					printf(" Enable showing the DSi Splash/\n");
+					printf(" Health & Safety screen.");
+				} else if (cursorPosition == 2) {
+					printf(" Load title contained in\n");
+					printf(" sd:/hiya/autoboot.bin\n");
+					printf(" instead of the DSi Menu.");
 				}
 
-				do {
-					scanKeys();
-					pressed = keysDownRepeat();
-					swiWaitForVBlank();
-				} while (!pressed);
-
-				if (pressed & KEY_L) {
-					// Debug code
-					FILE* ResetData = fopen("sd:/hiya/ResetData_extract.bin","wb");
-					fwrite((void*)0x02000000,1,0x800,ResetData);
-					fclose(ResetData);
-					for (int i = 0; i < 30; i++) swiWaitForVBlank();
-				}
-
-				if (pressed & KEY_A) {
-					switch(cursorPosition){
-						case 0:
-						default:
-							splash = !splash;
-							break;
-						case 1:
-							dsiSplash = !dsiSplash;
-							break;
-						case 2:
-							titleAutoboot = !titleAutoboot;
-							break;
-					}
-					menuprinted = true;
-				}
-
-				if (pressed & KEY_UP) {
-					cursorPosition--;
-					menuprinted = true;
-				} else if (pressed & KEY_DOWN) {
-					cursorPosition++;
-					menuprinted = true;
-				}
-
-				if (cursorPosition < 0) cursorPosition = 2;
-				if (cursorPosition > 2) cursorPosition = 0;
-
-				if (pressed & KEY_START) {
-					SaveSettings();
-					break;
-				}
+				menuprinted = false;
 			}
-		}
 
-		if (!gotoSettings && (*(u32*)0x02000300 == 0x434E4C54)) {
-			// if "CNLT" is found, then don't show splash
-			splash = false;
-		}
+			do {
+				scanKeys();
+				pressed = keysDownRepeat();
+				swiWaitForVBlank();
+			} while (!pressed);
 
-		if ((*(u32*)0x02000300 == 0x434E4C54) && (*(u32*)0x02000310 != 0x00000000)) {
-			// if "CNLT" is found, and a title is set to launch, then don't autoboot title in "autoboot.bin"
-			titleAutoboot = false;
-		}
-
-		if (titleAutoboot) {
-			FILE* ResetData = fopen("sd:/hiya/autoboot.bin","rb");
-			if (ResetData) {
-				fread((void*)0x02000300,1,0x20,ResetData);
-				dsiSplash = false;	// Disable DSi splash, so that DSi Menu doesn't appear
+			if (pressed & KEY_L) {
+				// Debug code
+				FILE* ResetData = fopen("sd:/hiya/ResetData_extract.bin","wb");
+				fwrite((void*)0x02000000,1,0x800,ResetData);
+				fclose(ResetData);
+				for (int i = 0; i < 30; i++) swiWaitForVBlank();
 			}
-			fclose(ResetData);
-		}
 
-		if (!dsiSplash) {
-			fifoSendValue32(FIFO_USER_03, 1);
-			// Tell Arm7 to check FIFO_USER_03 code	
-			fifoSendValue32(FIFO_USER_04, 1);
-			// Small delay to ensure arm7 has time to write i2c stuff
-			for (int i = 0; i < 1*3; i++) { swiWaitForVBlank(); }
-		} else {
-			fifoSendValue32(FIFO_USER_04, 1);
-		}
+			if (pressed & KEY_A) {
+				switch (cursorPosition){
+					case 0:
+					default:
+						splash = !splash;
+						break;
+					case 1:
+						dsiSplash = !dsiSplash;
+						break;
+					case 2:
+						titleAutoboot = !titleAutoboot;
+						break;
+				}
+				menuprinted = true;
+			}
 
-		if (splash) {
+			if (pressed & KEY_UP) {
+				cursorPosition--;
+				menuprinted = true;
+			} else if (pressed & KEY_DOWN) {
+				cursorPosition++;
+				menuprinted = true;
+			}
 
-			if (access("sd:/hiya/splashtop.bmp", F_OK)) topSplashFound = false;
-			if (access("sd:/hiya/splashbottom.bmp", F_OK)) bottomSplashFound = false;
+			if (cursorPosition < 0) cursorPosition = 2;
+			if (cursorPosition > 2) cursorPosition = 0;
 
-			BootSplashInit();
-
-			LoadScreen();
-			
-			for (int i = 0; i < 60*3; i++) { swiWaitForVBlank(); }
-		}
-
-		char tmdpath[256];
-		for (u8 i = 0x41; i <= 0x5A; i++) {
-			snprintf (tmdpath, sizeof(tmdpath), "sd:/title/00030017/484e41%x/content/title.tmd", i);
-			if (access(tmdpath, F_OK) == 0) {
+			if (pressed & KEY_START) {
+				saveSettings();
 				break;
 			}
 		}
-		FILE* f_tmd = fopen(tmdpath, "rb");
-		if (f_tmd) {
-			if (getFileSize(tmdpath) > TMD_SIZE) {
-				// Read big .tmd file at the correct size
-				f_tmd = fopen(tmdpath, "rb");
-				fread(tmdBuffer, 1, TMD_SIZE, f_tmd);
-				fclose(f_tmd);
-
-				// Write correct sized .tmd file
-				f_tmd = fopen(tmdpath, "wb");
-				fwrite(tmdBuffer, 1, TMD_SIZE, f_tmd);
-				fclose(f_tmd);
-			}
-			int err = runNdsFile("sd:/hiya/BOOTLOADER.NDS", 0, NULL);
-			setupConsole();
-			consoleInit(NULL, 0, BgType_Text4bpp, BgSize_T_256x256, 15, 0, true, true);
-			consoleClear();
-			iprintf ("Start failed. Error %i\n", err);
-			if (err == 1) printf ("bootloader.nds not found!");
-			consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
-			consoleClear();
-		} else {
-			setupConsole();
-			consoleInit(NULL, 0, BgType_Text4bpp, BgSize_T_256x256, 15, 0, true, true);
-			consoleClear();
-			printf("Error!\n");
-			printf("\n");
-			printf("Launcher's title.tmd was\n");
-			printf("not found!\n");
-			consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
-			consoleClear();
-		}
-
-	} else {
-
-		topSplashFound = false;
-		bottomSplashFound = false;
-
-		BootSplashInit();
-
-		// Display Error Screen
-		swiDecompressLZSSVram ((void*)topErrorTiles, (void*)CHAR_BASE_BLOCK(2), 0, &decompressBiosCallback);
-		swiDecompressLZSSVram ((void*)subErrorTiles, (void*)CHAR_BASE_BLOCK_SUB(2), 0, &decompressBiosCallback);
-		vramcpy_ui (&BG_PALETTE[0], topErrorPal, topErrorPalLen);
-		vramcpy_ui (&BG_PALETTE_SUB[0], subErrorPal, subErrorPalLen);
 	}
 
-	while(1) { swiWaitForVBlank(); }
+	if (!gotoSettings && (*(u32*)0x02000300 == 0x434E4C54)) {
+		// if "CNLT" is found, then don't show splash
+		splash = false;
+	}
+
+	if ((*(u32*)0x02000300 == 0x434E4C54) && (*(u32*)0x02000310 != 0x00000000)) {
+		// if "CNLT" is found, and a title is set to launch, then don't autoboot title in "autoboot.bin"
+		titleAutoboot = false;
+	}
+
+	if (titleAutoboot) {
+		FILE* ResetData = fopen("sd:/hiya/autoboot.bin","rb");
+		if (ResetData) {
+			fread((void*)0x02000300,1,0x20,ResetData);
+			dsiSplash = false;	// Disable DSi splash, so that DSi Menu doesn't appear
+			fclose(ResetData);
+		}
+	}
+
+	if (splash) {
+		if (gif[true].load(true)) {
+			splashFound[true] = true;
+			splashBmp[true] = false;
+		} else if (access("sd:/hiya/splashtop.bmp", F_OK) == 0) {
+			splashFound[true] = true;
+			splashBmp[true] = true;
+		}
+
+		if (gif[false].load(false)) {
+			splashFound[false] = true;
+			splashBmp[false] = false;
+		} else if (access("sd:/hiya/splashtop.bmp", F_OK) == 0) {
+			splashFound[false] = true;
+			splashBmp[false] = true;
+		}
+
+		loadScreen();
+
+		timerStart(0, ClockDivider_1024, TIMER_FREQ_1024(100), Gif::timerHandler);
+
+		// If both GIFs will loop forever (or are not loaded)
+		// then show for 3s
+		if (gif[true].loopForever() && gif[false].loopForever()) {
+			for (int i = 0; i < 60 * 2; i++)
+				swiWaitForVBlank();
+			timerStop(0);
+			for (int i = 0; i < 60 * 3; i++)
+				swiWaitForVBlank();
+		} else {
+			while (!(gif[true].finished() && gif[false].finished())) {
+				swiWaitForVBlank();
+				scanKeys();
+				u16 down = keysDown();
+
+				for (auto &g : gif) {
+					if (g.waitingForInput() && down)
+						gif[false].resume();
+				}
+			}
+		}
+		timerStop(0);
+	}
+
+	if (!dsiSplash) {
+		fifoSendValue32(FIFO_USER_03, 1);
+		// Tell Arm7 to check FIFO_USER_03 code
+		fifoSendValue32(FIFO_USER_04, 1);
+		// Small delay to ensure arm7 has time to write i2c stuff
+		for (int i = 0; i < 1*3; i++) { swiWaitForVBlank(); }
+	} else {
+		fifoSendValue32(FIFO_USER_04, 1);
+	}
+
+	char tmdpath[256];
+	for (u8 i = 0x41; i <= 0x5A; i++) {
+		snprintf (tmdpath, sizeof(tmdpath), "sd:/title/00030017/484e41%x/content/title.tmd", i);
+		if (access(tmdpath, F_OK) == 0) {
+			break;
+		}
+	}
+
+	FILE* f_tmd = fopen(tmdpath, "rb");
+	if (f_tmd) {
+		if (getFileSize(tmdpath) > TMD_SIZE) {
+			// Read big .tmd file at the correct size
+			f_tmd = fopen(tmdpath, "rb");
+			fread(tmdBuffer, 1, TMD_SIZE, f_tmd);
+			fclose(f_tmd);
+
+			// Write correct sized .tmd file
+			f_tmd = fopen(tmdpath, "wb");
+			fwrite(tmdBuffer, 1, TMD_SIZE, f_tmd);
+			fclose(f_tmd);
+		}
+		int err = runNdsFile("sd:/hiya/BOOTLOADER.NDS", 0, NULL);
+		setupConsole();
+		consoleInit(NULL, 0, BgType_Text4bpp, BgSize_T_256x256, 15, 0, true, true);
+		consoleClear();
+		printf ("Start failed. Error %i\n", err);
+		if (err == 1) printf ("bootloader.nds not found!");
+		consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
+		consoleClear();
+	} else {
+		setupConsole();
+		consoleInit(NULL, 0, BgType_Text4bpp, BgSize_T_256x256, 15, 0, true, true);
+		consoleClear();
+		printf("Error!\n");
+		printf("\n");
+		printf("Launcher's title.tmd was\n");
+		printf("not found!\n");
+		consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
+		consoleClear();
+	}
+
+	while (1)
+		swiWaitForVBlank();
 }
 

@@ -1,5 +1,8 @@
 */build
 *.nds
+*.dsi
 *.cia
 *.elf
 data/*
+*.DS_Store
+.vscode
