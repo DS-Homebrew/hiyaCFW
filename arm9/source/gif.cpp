@@ -176,7 +176,7 @@ bool Gif::load(bool top) {
 	fclose(file);
 
 	_paused = false;
-	_finished = false;
+	_finished = loopForever();
 	_frames.shrink_to_fit();
 	_animating.push_back(this);
 
