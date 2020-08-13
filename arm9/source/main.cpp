@@ -14,9 +14,6 @@
 #include "topError.h"
 #include "subError.h"
 
-void nocashMessage(const std::string &s, int i) { return nocashMessage((s + std::to_string(i)).c_str()); }
-void nocashMessage(int i) { return nocashMessage(std::to_string(i).c_str()); }
-
 #define CONSOLE_SCREEN_WIDTH 32
 #define CONSOLE_SCREEN_HEIGHT 24
 
