@@ -55,12 +55,16 @@ void Gif::displayFrame(void) {
 	if(_compressed) { // Was left compressed to be able to fit
 		int x = 0, y = 0;
 		u8 *dst = (u8*)(_top ? BG_GFX : BG_GFX_SUB) + (frame.descriptor.y + y + (192 - header.height) / 2) * 256 + frame.descriptor.x + (256 - header.width) / 2;
-		auto flush_fn = [&dst, &x, &y, &frame](std::vector<u8>::const_iterator begin, std::vector<u8>::const_iterator end) {
+		u8 row[frame.descriptor.w];
+		auto flush_fn = [&dst, &row, &x, &y, &frame](std::vector<u8>::const_iterator begin, std::vector<u8>::const_iterator end) {
 			for (; begin != end; ++begin) {
 				if (!frame.gce.transparentColorFlag || *begin != frame.gce.transparentColor)
-					*(dst + x) = *begin;
+					row[x] = *begin;
+				else
+					row[x] = *(dst + x);
 				x++;
 				if (x >= frame.descriptor.w) {
+					tonccpy(dst, row, frame.descriptor.w);
 					y++;
 					x = 0;
 					dst += 256;
@@ -74,10 +78,14 @@ void Gif::displayFrame(void) {
 		auto it = frame.image.imageData.begin();
 		for(int y = 0; y < frame.descriptor.h; y++) {
 			u8 *dst = (u8*)(_top ? BG_GFX : BG_GFX_SUB) + (frame.descriptor.y + y + (192 - header.height) / 2) * 256 + frame.descriptor.x + (256 - header.width) / 2;
+			u8 row[frame.descriptor.w];
 			for(int x = 0; x < frame.descriptor.w; x++, it++) {
 				if (!frame.gce.transparentColorFlag || *it != frame.gce.transparentColor)
-					*(dst + x) = *it;
+					row[x] = *it;
+				else
+					row[x] = *(dst + x);
 			}
+			tonccpy(dst, row, frame.descriptor.w);
 		}
 	}
 }
