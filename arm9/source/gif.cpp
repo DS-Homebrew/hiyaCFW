@@ -18,8 +18,6 @@ void Gif::displayFrame(void) {
 
 	_currentDelayProgress = 0;
 
-	Frame &frame = _frames[_currentFrame++];
-
 	if (_currentFrame >= _frames.size()) {
 		_currentFrame = 0;
 		_currentLoop++;
@@ -31,6 +29,8 @@ void Gif::displayFrame(void) {
 		_currentLoop = 0;
 		return;
 	}
+
+	Frame &frame = _frames[_currentFrame++];
 
 	if (frame.hasGCE) {
 		_currentDelay = frame.gce.delay;

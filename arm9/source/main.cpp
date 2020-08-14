@@ -328,7 +328,7 @@ int main( int argc, char **argv) {
 
 				for (auto &g : gif) {
 					if (g.waitingForInput() && down)
-						gif[false].resume();
+						g.resume();
 				}
 			}
 		}
