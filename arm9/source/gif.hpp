@@ -106,7 +106,7 @@ public:
 
 	bool loopForever(void) { return _loopCount == 0xFFFF; }
 	bool waitingForInput(void) { return _waitingForInput; }
-	void resume(void) { _waitingForInput = false; unpause(); }
+	void resume(void) { _waitingForInput = false; _currentDelayProgress = _currentDelay; }
 	bool finished(void) { return _finished; }
 };
 
