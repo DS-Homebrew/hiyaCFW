@@ -87,8 +87,10 @@ void bootSplashInit() {
 		bgInitSub(3, BgType_Bmp8, BgSize_B8_256x256, 0, 0);
 
 	// Clear backgrounds
-	toncset(BG_GFX, 0, 256 * 256 * (splashBmp[true] ? 2 : 1));
-	toncset(BG_GFX_SUB, 0, 256 * 256 * (splashBmp[false] ? 2 : 1));
+	BG_PALETTE[0xFF] = 0xFFFF;
+	BG_PALETTE_SUB[0xFF] = 0xFFFF;
+	toncset16(BG_GFX, 0xFFFF, 256 * 256 * 2);
+	toncset16(BG_GFX_SUB, 0xFFFF, 256 * 256 * 2);
 }
 
 void loadScreen() {
