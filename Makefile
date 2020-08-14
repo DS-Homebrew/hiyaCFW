@@ -123,7 +123,7 @@ $(TARGET).nds:	$(TARGET).arm7 $(TARGET).arm9
 	ndstool	-c $(TARGET).nds -7 $(TARGET).arm7.elf -9 $(TARGET).arm9.elf -r9 00080002 \
 			-b $(CURDIR)/icon.bmp "hiyaCFW;CFW for Nintendo DSi;made by Apache Thunder" \
 			-g HIYA 01 "HIYACFW" -z 80040000 -u 00030004
-	python27 fix_ndsheader.py $(TARGET).nds
+	python2 fix_ndsheader.py $(TARGET).nds
 	cp $(TARGET).nds hiya.dsi
 
 $(TARGET).arm7: arm7/$(TARGET).elf
@@ -143,7 +143,7 @@ arm9/$(TARGET).elf:
 #---------------------------------------------------------------------------------
 clean:
 	@echo clean ...
-	@rm -fr $(BUILD) $(TARGET).elf $(TARGET).nds $(TARGET).arm9 $(TARGET).arm7.elf $(TARGET).arm9.elf data bootcode.dsi
+	@rm -fr $(BUILD) $(TARGET).elf $(TARGET).nds $(TARGET).nds.orig.nds hiya.dsi $(TARGET).arm9 $(TARGET).arm7.elf $(TARGET).arm9.elf data bootcode.dsi
 	@$(MAKE) -C bootloader clean
 	$(MAKE) -C arm9 clean
 	$(MAKE) -C arm7 clean
