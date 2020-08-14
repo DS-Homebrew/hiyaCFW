@@ -17,6 +17,7 @@ void Gif::displayFrame(void) {
 		return;
 
 	_currentDelayProgress = 0;
+	_waitingForInput = false;
 
 	if (_currentFrame >= _frames.size()) {
 		_currentFrame = 0;
@@ -39,7 +40,6 @@ void Gif::displayFrame(void) {
 			_paused = true;
 		} else if (frame.gce.userInputFlag) {
 			_waitingForInput = true;
-			_paused = true;
 		}
 	}
 
