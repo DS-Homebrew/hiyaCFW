@@ -318,9 +318,6 @@ int main( int argc, char **argv) {
 		// If both GIFs will loop forever (or are not loaded)
 		// then show for 3s
 		if (gif[true].loopForever() && gif[false].loopForever()) {
-			for (int i = 0; i < 60 * 2; i++)
-				swiWaitForVBlank();
-			timerStop(0);
 			for (int i = 0; i < 60 * 3; i++)
 				swiWaitForVBlank();
 		} else {
