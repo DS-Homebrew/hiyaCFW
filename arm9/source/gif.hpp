@@ -59,7 +59,7 @@ class Gif {
 
 		struct Image {
 			u8 lzwMinimumCodeSize;
-			std::vector<u8> imageData; // LZW compressed
+			std::vector<u8> imageData;
 			size_t dataSize;
 		} image;
 
@@ -74,6 +74,7 @@ class Gif {
 	std::vector<u16> _gct; // In DS format
 	u16 _loopCount = 0xFFFF;
 	bool _top = false;
+	bool _compressed = false;
 
 	// Animation vairables
 	static std::vector<Gif *> _animating;

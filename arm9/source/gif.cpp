@@ -13,7 +13,7 @@ void Gif::timerHandler(void) {
 }
 
 void Gif::displayFrame(void) {
-	if (_paused || ++_currentDelayProgress <= _currentDelay)
+	if (_paused || ++_currentDelayProgress < _currentDelay)
 		return;
 
 	_currentDelayProgress = 0;
@@ -52,23 +52,34 @@ void Gif::displayFrame(void) {
 	if (frame.gce.disposalMethod == 2)
 		toncset(_top ? BG_GFX : BG_GFX_SUB, header.bgColor, 256 * 192);
 
-	int x = 0, y = 0;
-	u8 *dst = (u8*)(_top ? BG_GFX : BG_GFX_SUB) + (frame.descriptor.y + y + (192 - header.height) / 2) * 256 + frame.descriptor.x + (256 - header.width) / 2;
-	auto flush_fn = [&dst, &x, &y, &frame](std::vector<u8>::const_iterator begin, std::vector<u8>::const_iterator end) {
-		for (; begin != end; ++begin) {
-			if (!frame.gce.transparentColorFlag || *begin != frame.gce.transparentColor)
-				*(dst + x) = *begin;
-			x++;
-			if (x >= frame.descriptor.w) {
-				y++;
-				x = 0;
-				dst += 256;
+	if(_compressed) { // Was left compressed to be able to fit
+		int x = 0, y = 0;
+		u8 *dst = (u8*)(_top ? BG_GFX : BG_GFX_SUB) + (frame.descriptor.y + y + (192 - header.height) / 2) * 256 + frame.descriptor.x + (256 - header.width) / 2;
+		auto flush_fn = [&dst, &x, &y, &frame](std::vector<u8>::const_iterator begin, std::vector<u8>::const_iterator end) {
+			for (; begin != end; ++begin) {
+				if (!frame.gce.transparentColorFlag || *begin != frame.gce.transparentColor)
+					*(dst + x) = *begin;
+				x++;
+				if (x >= frame.descriptor.w) {
+					y++;
+					x = 0;
+					dst += 256;
+				}
+			}
+		};
+
+		LZWReader reader(frame.image.lzwMinimumCodeSize, flush_fn);
+		reader.decode(frame.image.imageData.begin(), frame.image.imageData.end());
+	} else { // Already decompressed, just copy
+		auto it = frame.image.imageData.begin();
+		for(int y = 0; y < frame.descriptor.h; y++) {
+			u8 *dst = (u8*)(_top ? BG_GFX : BG_GFX_SUB) + (frame.descriptor.y + y + (192 - header.height) / 2) * 256 + frame.descriptor.x + (256 - header.width) / 2;
+			for(int x = 0; x < frame.descriptor.w; x++, it++) {
+				if (!frame.gce.transparentColorFlag || *it != frame.gce.transparentColor)
+					*(dst + x) = *it;
 			}
 		}
-	};
-
-	LZWReader reader(frame.image.lzwMinimumCodeSize, flush_fn);
-	reader.decode(frame.image.imageData.begin(), frame.image.imageData.end());
+	}
 }
 
 bool Gif::load(bool top) {
@@ -77,6 +88,10 @@ bool Gif::load(bool top) {
 	FILE *file = fopen((_top ? "sd:/hiya/splashtop.gif" : "sd:/hiya/splashbottom.gif"), "rb");
 	if (!file)
 		return false;
+
+	fseek(file, 0, SEEK_END);
+	_compressed = ftell(file) > 1000000; // Decompress files bigger than 1MB while drawing
+	fseek(file, 0, SEEK_SET);
 
 	// Reserve space for 2,000 frames
 	_frames.reserve(2000);
@@ -157,10 +172,26 @@ bool Gif::load(bool top) {
 				}
 
 				frame.image.lzwMinimumCodeSize = fgetc(file);
-				while (u8 size = fgetc(file)) {
-					size_t end = frame.image.imageData.size();
-					frame.image.imageData.resize(end + size);
-					fread(frame.image.imageData.data() + end, 1, size, file);
+				if(_compressed) { // Leave compressed to fit more in RAM
+					while (u8 size = fgetc(file)) {
+						size_t end = frame.image.imageData.size();
+						frame.image.imageData.resize(end + size);
+						fread(frame.image.imageData.data() + end, 1, size, file);
+					}
+				} else { // Decompress now for faster draw
+					frame.image.imageData = std::vector<u8>(frame.descriptor.w * frame.descriptor.h);
+					auto it = frame.image.imageData.begin();
+					auto flush_fn = [&it, &frame](std::vector<u8>::const_iterator begin, std::vector<u8>::const_iterator end) {
+						std::copy(begin, end, it);
+						it += std::distance(begin, end);
+					};
+					LZWReader reader(frame.image.lzwMinimumCodeSize, flush_fn);
+
+					while (u8 size = fgetc(file)) {
+						std::vector<u8> buffer(size);
+						fread(buffer.data(), 1, size, file);
+						reader.decode(buffer.begin(), buffer.end());
+					}
 				}
 
 				_frames.push_back(frame);

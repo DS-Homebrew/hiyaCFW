@@ -18,6 +18,7 @@ u16 LZWReader::readLSB(std::vector<u8>::iterator &begin, const std::vector<u8>::
 
 bool LZWReader::decode(std::vector<u8>::iterator begin, std::vector<u8>::iterator end) {
 	o = 0;
+	err = false;
 	// Loop over the code stream, converting codes into decompressed bytes.
 	while (begin != end) {
 		u16 code = readLSB(begin, end);
@@ -63,11 +64,8 @@ bool LZWReader::decode(std::vector<u8>::iterator begin, std::vector<u8>::iterato
 				c = prefix[c];
 			}
 			output[i] = c;
-			// std::copy(output.begin() + i, output.end(), output.begin() + o);
-			// o += std::distance(output.begin() + i, output.end());
-			for (uint j = i; j < output.size(); j++) {
-				output[o++] = output[j];
-			}
+			std::copy(output.begin() + i, output.end(), output.begin() + o);
+			o += std::distance(output.begin() + i, output.end());
 			if (last != DECODER_INVALID_CODE) {
 				// Save what the hi code expands to
 				suffix[hi] = c;
