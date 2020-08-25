@@ -19,12 +19,16 @@ GAME_SUBTITLE2	:= made by Apache Thunder
 
 include $(DEVKITARM)/ds_rules
 
-.PHONY: checkarm7 checkarm9 clean
+.PHONY: bootloader checkarm7 checkarm9 clean
 
 #---------------------------------------------------------------------------------
 # main targets
 #---------------------------------------------------------------------------------
-all: checkarm7 checkarm9 $(TARGET).nds
+all: bootloader checkarm7 checkarm9 $(TARGET).nds
+
+#---------------------------------------------------------------------------------
+bootloader:
+	$(MAKE) -C bootloader "EXTRA_CFLAGS= -DNO_DLDI"
 
 #---------------------------------------------------------------------------------
 checkarm7:
@@ -52,6 +56,8 @@ arm9/$(TARGET).elf:
 
 #---------------------------------------------------------------------------------
 clean:
-	$(MAKE) -C arm9 clean
-	$(MAKE) -C arm7 clean
-	rm -f $(TARGET).nds $(TARGET).nds.orig.nds $(TARGET).arm7 $(TARGET).arm9
+	@echo clean ...
+	@$(MAKE) -C arm9 clean
+	@$(MAKE) -C arm7 clean
+	@$(MAKE) -C bootloader clean
+	@rm -f $(TARGET).nds $(TARGET).nds.orig.nds hiya.dsi
