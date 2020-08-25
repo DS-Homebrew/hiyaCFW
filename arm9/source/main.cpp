@@ -8,6 +8,7 @@
 #include "inifile.h"
 #include "nds_loader_arm9.h"
 #include "tonccpy.h"
+#include "version.h"
 
 #include "topLoad.h"
 #include "subLoad.h"
@@ -177,7 +178,7 @@ int main( int argc, char **argv) {
 
 				printf ("\x1B[46m");
 
-				printf("HiyaCFW v1.3.3 configuration\n");
+				printf("HiyaCFW %s%cconfiguration\n", VER_NUMBER, sizeof(VER_NUMBER) > 11 ? '\n' : ' ');
 				printf("Press A to select, START to save");
 				printf("\n");
 
