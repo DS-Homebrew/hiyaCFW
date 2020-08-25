@@ -50,7 +50,7 @@ jobs:
       - name: Publish build to GH Actions
         uses: actions/upload-artifact@v2
         with:
-          path: ~/hiyaCFW.7z
+          path: hiyaCFW.7z
           name: build
 
   # Only run this for non-PR jobs.
