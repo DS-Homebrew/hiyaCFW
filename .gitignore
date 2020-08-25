@@ -6,3 +6,4 @@
 data/*
 *.DS_Store
 .vscode
+arm9/include/version.h
