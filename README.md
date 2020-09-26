@@ -1,18 +1,17 @@
 <p align="center">
   <img src="https://github.com/RocketRobz/hiyaCFW/blob/master/logo/logo.png"><br>
-  <span style="padding-right: 5px;">
-    <a href="https://travis-ci.org/RocketRobz/hiyaCFW">
-      <img src="https://travis-ci.org/RocketRobz/hiyaCFW.svg?branch=unlaunch">
-    </a>
-  </span>
-  <span style="padding-left: 5px;">
-  <a href="https://discord.gg/yD3spjv">
-   <img src="https://img.shields.io/badge/Discord%20Server-%23other--homebrew-green.svg">
+  <a href="https://gbatemp.net/threads/release-hiyacfw-worlds-first-nintendo-dsi-cfw.502631/">
+   <img src="https://img.shields.io/badge/GBAtemp-Thread-blue.svg" alt="GBAtemp Thread">
   </a>
-  </span>
+  <a href="https://discord.gg/yD3spjv">
+   <img src="https://img.shields.io/badge/Discord%20Server-%23other--nds--homebrew-green.svg" alt="Discord Server">
+  </a>
+  <a href="https://github.com/RocketRobz/hiyaCFW/actions?query=workflow%3A%22Build+hiyaCFW%22">
+    <img src="https://github.com/RocketRobz/hiyaCFW/workflows/Build%20hiyaCFW/badge.svg" alt="Build status on GitHub Actions">
+  </a>
 </p>
 
-HiyaCFW is the world's FIRST Nintendo DSi CFW, made by the talented folks over on our Rocket.Chat server.
+HiyaCFW is the world's FIRST Nintendo DSi CFW, made by the talented folks over on our Discord server.
 
 # Features
 
@@ -22,10 +21,11 @@ HiyaCFW is the world's FIRST Nintendo DSi CFW, made by the talented folks over o
 - Run blocked flashcards (such as R4 Ultra)
 - Remove Region-Locking
 - Run 3DS-exclusive DSiWare (such as WarioWare Touched)
+- Custom splash screens
 
 # Compiling
 
-In order to compile this on your own, you will need [devkitPro](https://devkitpro.org/) with the devkitARM toolchain, plus the necessary tools and libraries. DevkitPro includes `dkp-pacman` for easy installation of all components:
+In order to compile this on your own, you will need [devkitPro](https://devkitpro.org/)'s toolchains with the devkitARM, plus the necessary tools and libraries. `dkp-pacman` is included for easy installation of all components:
 
 ```
  $ dkp-pacman -Syu devkitARM general-tools dstools ndstool libnds libfat-nds
@@ -36,5 +36,6 @@ Once everything is downloaded and installed, `git clone` this repository, naviga
 # Credits
 - Apache Thunder, NoCash, StuckPixel, Shutterbug2000, and Gericom.
 - Drenn: .bmp loading code from GameYob, for custom splash screens.
+- Pk11: .gif loading code for animated splash screens.
 - RocketRobz: Logo graphic, and settings screen.
 - WinterMute/devkitPro: For the majority of the base code like nds-bootloader which this loader uses.
