@@ -50,15 +50,24 @@ bool loadBMP(bool top) {
 	}
 
 	fseek(file, 0xE, SEEK_SET);
-	fseek(file, fgetc(file) - 1, SEEK_CUR);
+	u8 headerSize = fgetc(file);
+	bool rgb565 = false;
+	if(headerSize == 0x38) {
+		// Check the upper byte green mask for if it's got 5 or 6 bits
+		fseek(file, 0x2C, SEEK_CUR);
+		rgb565 = fgetc(file) == 0x07;
+		fseek(file, headerSize - 0x2E, SEEK_CUR);
+	} else {
+		fseek(file, headerSize - 1, SEEK_CUR);
+	}
 	u16 *bmpImageBuffer = new u16[width * height];
 	fread(bmpImageBuffer, 2, width * height, file);
-	u16 *dst = (top ? BG_GFX : BG_GFX_SUB) + ((192 - ((192 - height) / 2)) * 256) + (256 - width) / 2;
+	u16 *dst = (top ? BG_GFX : BG_GFX_SUB) + ((191 - ((192 - height) / 2)) * 256) + (256 - width) / 2;
 	u16 *src = bmpImageBuffer;
 	for (uint y = 0; y < height; y++, dst -= 256) {
 		for (uint x = 0; x < width; x++) {
 			u16 val = *(src++);
-			*(dst + x) = ((val >> 10) & 0x1F) | (val & (0x1F << 5)) | (val & 0x1F) << 10 | BIT(15);
+			*(dst + x) = ((val >> (rgb565 ? 11 : 10)) & 0x1F) | ((val >> (rgb565 ? 1 : 0)) & (0x1F << 5)) | (val & 0x1F) << 10 | BIT(15);
 		}
 	}
 
