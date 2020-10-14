@@ -60,6 +60,7 @@ clean:
 	@$(MAKE) -C arm9 clean
 	@$(MAKE) -C arm7 clean
 	@$(MAKE) -C bootloader clean
+	@$(MAKE) -C libs/libslim clean
 	@rm -f $(TARGET).nds $(TARGET).nds.orig.nds hiya.dsi
 
 libslim:
