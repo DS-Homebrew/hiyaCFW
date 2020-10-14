@@ -1,5 +1,5 @@
 #include <nds.h>
-#include <fat.h>
+#include <slim.h>
 #include <stdarg.h>
 
 #include "bios_decompress_callback.h"

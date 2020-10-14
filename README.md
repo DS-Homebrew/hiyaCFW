@@ -28,7 +28,7 @@ HiyaCFW is the world's FIRST Nintendo DSi CFW, made by the talented folks over o
 In order to compile this on your own, you will need [devkitPro](https://devkitpro.org/)'s toolchains with the devkitARM, plus the necessary tools and libraries. `dkp-pacman` is included for easy installation of all components:
 
 ```
- $ dkp-pacman -Syu devkitARM general-tools dstools ndstool libnds libfat-nds
+ $ dkp-pacman -Syu devkitARM general-tools dstools ndstool libnds
 ```
 
 Once everything is downloaded and installed, `git clone` this repository, navigate to the folder, and run `make` to compile HiyaCFW. If there is an error, let us know.

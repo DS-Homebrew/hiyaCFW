@@ -1,6 +1,6 @@
 #include "fileOperations.h"
 #include <nds.h>
-#include <fat.h>
+#include <slim.h>
 #include <stdio.h>
 #include <dirent.h>
 #include <vector>
