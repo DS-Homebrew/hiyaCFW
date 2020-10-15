@@ -298,18 +298,21 @@ int main( int argc, char **argv) {
 		statvfs("sd:/", &st);
 		freeSpace = st.f_bsize * st.f_bfree;
 
-		// Make sure hiya directory exists and make the file
-		mkdir("sd:/hiya", 0777);
-		FILE *file = fopen("sd:/hiya/dummy.bin", "wb");
-		if(file) {
-			// Free space - 2GB + 10MB
-			printf("Making new dummy file...   ");
-			fseek(file, (freeSpace - (2 << 30)) + 10000000, SEEK_SET);
-			fputc('\0', file);
-			fclose(file);
-			printf("Done!\n");
-		} else {
-			printf("Failed to open file!\n");
+		// Check that dummy file is still needed
+		if(freeSpace > (2u << 30)) {
+			// Make sure hiya directory exists and make the file
+			mkdir("sd:/hiya", 0777);
+			FILE *file = fopen("sd:/hiya/dummy.bin", "wb");
+			if(file) {
+				// Free space - 2GB + 10MB
+				printf("Making new dummy file...   ");
+				fseek(file, (freeSpace - (2 << 30)) + 10000000, SEEK_SET);
+				fputc('\0', file);
+				fclose(file);
+				printf("Done!\n");
+			} else {
+				printf("Failed to open file!\n");
+			}
 		}
 	}
 
