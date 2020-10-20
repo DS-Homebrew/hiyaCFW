@@ -1,6 +1,8 @@
+#include <dirent.h>
 #include <nds.h>
-#include <fat.h>
+#include <slim.h>
 #include <stdarg.h>
+#include <stdio.h>
 
 #include "bios_decompress_callback.h"
 #include "fileOperations.h"
@@ -284,6 +286,43 @@ int main( int argc, char **argv) {
 				saveSettings();
 				break;
 			}
+		}
+	}
+
+	// Create dummy file
+	// Check the free space
+	struct statvfs st;
+	statvfs("sd:/", &st);
+	u32 freeSpace = st.f_bsize * st.f_bfree;
+
+	// If the free space is bigger than 2GiB (using a u32 so always 0 - 4GiB)
+	if(freeSpace > (2u << 30)) {
+		consoleDemoInit();
+		size_t oldSize = 0;
+		// Check old dummy file size to see if it can just be removed
+		FILE *file = fopen("sd:/hiya/dummy.bin", "rb");
+		if(file) {
+			fseek(file, 0, SEEK_END);
+			oldSize = ftell(file);
+			fclose(file);
+		}
+
+		// Check that dummy file is still needed
+		if((freeSpace + oldSize) > (2u << 30)) {
+			// Make sure hiya directory exists and make the file
+			mkdir("sd:/hiya", 0777);
+			printf("Making new dummy file...   ");
+			// Make sure the file exists
+			file = fopen("sd:/hiya/dummy.bin", "wb");
+			if(file)
+				fclose(file);
+			// Free space - 2GB + 10MB
+			truncate("sd:/hiya/dummy.bin", (freeSpace - (2 << 30)) + 10000000);
+			printf("Done!\n");
+		} else {
+			printf("Removing old dummy file... ");
+			remove("sd:/hiya/dummy.bin");
+			printf("Done!\n");
 		}
 	}
 

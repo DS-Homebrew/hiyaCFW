@@ -19,12 +19,12 @@ GAME_SUBTITLE2	:= made by Apache Thunder
 
 include $(DEVKITARM)/ds_rules
 
-.PHONY: bootloader checkarm7 checkarm9 clean
+.PHONY: bootloader checkarm7 checkarm9 clean libslim
 
 #---------------------------------------------------------------------------------
 # main targets
 #---------------------------------------------------------------------------------
-all: bootloader checkarm7 checkarm9 $(TARGET).nds
+all: libslim bootloader checkarm7 checkarm9 $(TARGET).nds
 
 #---------------------------------------------------------------------------------
 bootloader:
@@ -60,4 +60,8 @@ clean:
 	@$(MAKE) -C arm9 clean
 	@$(MAKE) -C arm7 clean
 	@$(MAKE) -C bootloader clean
+	@$(MAKE) -C libs/libslim clean
 	@rm -f $(TARGET).nds $(TARGET).nds.orig.nds hiya.dsi
+
+libslim:
+	$(MAKE) -C libs/libslim/libslim
