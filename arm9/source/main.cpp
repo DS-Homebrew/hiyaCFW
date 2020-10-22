@@ -153,6 +153,9 @@ void setupConsole() {
 }
 
 int main( int argc, char **argv) {
+	extern void dsiOnly(void);
+	dsiOnly();
+
 	// defaultExceptionHandler();
 
 	if (!fatInitDefault()) {
