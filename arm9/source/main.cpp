@@ -173,7 +173,7 @@ int main( int argc, char **argv) {
 
 	loadSettings();
 
-	bool gotoSettings = (access("sd:/hiya/settings.ini", F_OK) != 0);
+	bool gotoSettings = (access(SETTINGS_INI_PATH, F_OK) != 0);
 
 	scanKeys();
 
@@ -192,7 +192,7 @@ int main( int argc, char **argv) {
 
 				printf ("\x1B[46m");
 
-				printf("HiyaCFW %s%cconfiguration\n", VER_NUMBER, sizeof(VER_NUMBER) > 11 ? '\n' : ' ');
+				printf("hiyaCFW %s%cconfiguration\n", VER_NUMBER, sizeof(VER_NUMBER) > 11 ? '\n' : ' ');
 				printf("Press A to select, START to save");
 				printf("\n");
 
