@@ -297,9 +297,11 @@ int main( int argc, char **argv) {
 	struct statvfs st;
 	statvfs("sd:/", &st);
 	u32 freeSpace = st.f_bsize * st.f_bfree;
+	u64 realFreeSpace = st.f_bsize * st.f_bfree;
 
 	// If the free space is bigger than 2GiB (using a u32 so always 0 - 4GiB)
-	if(freeSpace > (2u << 30)) {
+	// or the free space is less than 20MiB (and the actual free space is over 4GiB)
+	if(freeSpace > (2u << 30) || (freeSpace < (20u << 20) && realFreeSpace > (4u << 30))) {
 		consoleDemoInit();
 		size_t oldSize = 0;
 		// Check old dummy file size to see if it can just be removed
@@ -311,16 +313,19 @@ int main( int argc, char **argv) {
 		}
 
 		// Check that dummy file is still needed
-		if((freeSpace + oldSize) > (2u << 30)) {
+		if((freeSpace + oldSize) > (2u << 30) || (freeSpace + oldSize) < (20u << 20)) {
 			// Make sure hiya directory exists and make the file
 			mkdir("sd:/hiya", 0777);
 			printf("Making new dummy file...   ");
+
 			// Make sure the file exists
 			file = fopen("sd:/hiya/dummy.bin", "wb");
 			if(file)
 				fclose(file);
-			// Free space - 2GB + 10MB
-			truncate("sd:/hiya/dummy.bin", (freeSpace - (2 << 30)) + 10000000);
+
+			// If free space is less than 20MiB, add free space + 2GiB + 10MiB
+			// otherwise add free space - 2GiB + 10MiB
+			truncate("sd:/hiya/dummy.bin", (freeSpace < (20u << 20) ? (freeSpace + (2 << 30)) : (freeSpace - (2 << 30))) + (10 << 20));
 			printf("Done!\n");
 		} else {
 			printf("Removing old dummy file... ");
