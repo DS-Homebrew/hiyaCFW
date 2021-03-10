@@ -98,7 +98,7 @@ bool Gif::load(bool top) {
 		return false;
 
 	fseek(file, 0, SEEK_END);
-	_compressed = ftell(file) > 1000000; // Decompress files bigger than 1MB while drawing
+	_compressed = ftell(file) > 1 << 20; // Decompress files bigger than 1MiB while drawing
 	fseek(file, 0, SEEK_SET);
 
 	// Reserve space for 2,000 frames
@@ -131,6 +131,8 @@ bool Gif::load(bool top) {
 					case 0xF9: { // Graphics Control
 						frame.hasGCE = true;
 						fread(&frame.gce, 1, fgetc(file), file);
+						if(frame.gce.delay < 2) // If delay is less then 2, change it to 10
+							frame.gce.delay = 10;
 						fgetc(file); // Terminator
 						break;
 					} case 0x01: { // Plain text
@@ -152,9 +154,10 @@ bool Gif::load(bool top) {
 							char buffer[0xC] = {0};
 							fread(buffer, 1, 0xB, file);
 							if (strcmp(buffer, "NETSCAPE2.0") == 0) { // Check for Netscape loop count
-								// ptr += 0xB + 2;
 								fseek(file, 2, SEEK_CUR);
 								fread(&_loopCount, 1, sizeof(_loopCount), file);
+								if(_loopCount == 0) // If loop count 0 is specified, loop forever
+									_loopCount = 0xFFFF;
 								fgetc(file); //terminator
 								break;
 							}
