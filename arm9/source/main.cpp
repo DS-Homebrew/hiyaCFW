@@ -354,7 +354,7 @@ int main( int argc, char **argv) {
 	}
 
 	if (splash) {
-		if (gif[true].load(true)) {
+		if (gif[true].load("sd:/hiya/splashtop.gif", true, true, false)) {
 			splashFound[true] = true;
 			splashBmp[true] = false;
 		} else if (access("sd:/hiya/splashtop.bmp", F_OK) == 0) {
@@ -362,7 +362,7 @@ int main( int argc, char **argv) {
 			splashBmp[true] = true;
 		}
 
-		if (gif[false].load(false)) {
+		if (gif[false].load("sd:/hiya/splashbottom.gif", false, true, false)) {
 			splashFound[false] = true;
 			splashBmp[false] = false;
 		} else if (access("sd:/hiya/splashtop.bmp", F_OK) == 0) {

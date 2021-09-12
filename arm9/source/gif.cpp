@@ -90,16 +90,20 @@ void Gif::displayFrame(void) {
 	}
 }
 
-bool Gif::load(bool top) {
+bool Gif::load(const char *path, bool top, bool animate, bool forceDecompress) {
 	_top = top;
 
-	FILE *file = fopen((_top ? "sd:/hiya/splashtop.gif" : "sd:/hiya/splashbottom.gif"), "rb");
+	FILE *file = fopen(path, "rb");
 	if (!file)
 		return false;
 
-	fseek(file, 0, SEEK_END);
-	_compressed = ftell(file) > 1 << 20; // Decompress files bigger than 1MiB while drawing
-	fseek(file, 0, SEEK_SET);
+	if(forceDecompress) {
+		_compressed = false;
+	} else {
+		fseek(file, 0, SEEK_END);
+		_compressed = ftell(file) > (/*dsiFeatures()*/true ? 1 << 20 : 1 << 18); // Decompress files bigger than 1MiB (256KiB in DS Mode) while drawing
+		fseek(file, 0, SEEK_SET);
+	}
 
 	// Reserve space for 2,000 frames
 	_frames.reserve(2000);
@@ -108,7 +112,7 @@ bool Gif::load(bool top) {
 	fread(&header, 1, sizeof(header), file);
 
 	// Check that this is a GIF
-	if (memcmp(header.signature, "GIF89a", sizeof(header.signature)) != 0) {
+	if (memcmp(header.signature, "GIF87a", sizeof(header.signature)) != 0 && memcmp(header.signature, "GIF89a", sizeof(header.signature)) != 0) {
 		fclose(file);
 		return false;
 	}
@@ -220,7 +224,8 @@ bool Gif::load(bool top) {
 	_paused = false;
 	_finished = loopForever();
 	_frames.shrink_to_fit();
-	_animating.push_back(this);
+	if(animate)
+		_animating.push_back(this);
 
 	return true;
 }
