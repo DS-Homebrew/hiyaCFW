@@ -3,6 +3,7 @@
 
 #include <nds/ndstypes.h>
 #include <vector>
+#include <cstddef>
 
 typedef unsigned int uint;
 
@@ -60,7 +61,6 @@ class Gif {
 		struct Image {
 			u8 lzwMinimumCodeSize;
 			std::vector<u8> imageData;
-			size_t dataSize;
 		} image;
 
 		std::vector<u16> lct; // In DS format
@@ -72,7 +72,7 @@ class Gif {
 
 	std::vector<Frame> _frames;
 	std::vector<u16> _gct; // In DS format
-	u16 _loopCount = 0;
+	u16 _loopCount = 0xFFFF;
 	bool _top = false;
 	bool _compressed = false;
 
@@ -95,9 +95,13 @@ public:
 	static void timerHandler(void);
 
 	Gif() {}
+	Gif(const char *path, bool top, bool animate, bool forceDecompress) { load(path, top, animate, forceDecompress); }
 	~Gif() {}
 
-	bool load(bool top);
+	bool load(const char *path, bool top, bool animate, bool forceDecompress);
+
+	Frame &frame(int frame) { return _frames[frame]; }
+	std::vector<u16> gct() { return _gct; }
 
 	bool paused() { return _paused; }
 	void pause() { _paused = true; }
@@ -108,6 +112,8 @@ public:
 	bool waitingForInput(void) { return _waitingForInput; }
 	void resume(void) { _waitingForInput = false; _currentDelayProgress = _currentDelay; }
 	bool finished(void) { return _finished; }
+
+	int currentFrame(void) { return _currentFrame; }
 };
 
 #endif
