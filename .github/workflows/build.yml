@@ -61,7 +61,7 @@ jobs:
           7z a template.7z "for SDNAND SD card"
           mv template.7z hiyaCFW.7z
       - name: Publish build to GH Actions
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           path: hiyaCFW.7z
           name: build
