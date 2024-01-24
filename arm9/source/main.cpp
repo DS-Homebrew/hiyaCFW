@@ -241,6 +241,38 @@ int main( int argc, char **argv) {
 			swiWaitForVBlank();
 	}
 
+	u8 oldRegion = 0;
+	u8 regionChar = 0;
+	FILE* f_hwinfoS = fopen("sd:/sys/HWINFO_S.dat", "rb");
+	if (f_hwinfoS) {
+		fseek(f_hwinfoS, 0x90, SEEK_SET);
+		fread(&oldRegion, 1, 1, f_hwinfoS);
+		fseek(f_hwinfoS, 0xA0, SEEK_SET);
+		fread(&regionChar, 1, 1, f_hwinfoS);
+		fclose(f_hwinfoS);
+	} else {
+		setupConsole();
+		consoleInit(NULL, 0, BgType_Text4bpp, BgSize_T_256x256, 15, 0, true, true);
+		consoleClear();
+		iprintf("Error!\n");
+		iprintf("\n");
+		iprintf("HWINFO_S.dat not found!");
+		consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
+		consoleClear();
+
+		while (1)
+			swiWaitForVBlank();
+	}
+
+	u8 newRegion = oldRegion;
+	if (regionChar == 'C') {
+		if (newRegion != 4) newRegion = 4;
+	} else if (regionChar == 'K') {
+		if (newRegion != 5) newRegion = 5;
+	} else {
+		if (newRegion >= 4) newRegion = 0;
+	}
+
 	loadSettings();
 
 	bool gotoSettings = (access(SETTINGS_INI_PATH, F_OK) != 0);
@@ -251,6 +283,13 @@ int main( int argc, char **argv) {
 
 	if (gotoSettings) {
 		setupConsole();
+
+		int optionCount = 2;
+		int optionShift = 0;
+		if (regionChar != 'C' && regionChar != 'K') {
+			optionCount++; // Display region setting
+			optionShift++;
+		}
 
 		int pressed = 0;
 		bool menuprinted = true;
@@ -268,7 +307,29 @@ int main( int argc, char **argv) {
 
 				iprintf ("\x1B[47m");
 
-				if (cursorPosition == 0) iprintf ("\x1B[41m");
+				if (optionCount > 2) {
+					if (cursorPosition == 0) iprintf ("\x1B[41m");
+					else iprintf ("\x1B[47m");
+
+					iprintf(" Region: ");
+					switch (newRegion) {
+						case 0:
+							iprintf("JPN(x), USA( ),\n         EUR( ), AUS( )");
+							break;
+						case 1:
+							iprintf("JPN( ), USA(x),\n         EUR( ), AUS( )");
+							break;
+						case 2:
+							iprintf("JPN( ), USA( ),\n         EUR(x), AUS( )");
+							break;
+						case 3:
+							iprintf("JPN( ), USA( ),\n         EUR( ), AUS(x)");
+							break;
+					}
+					iprintf("\n\n");
+				}
+
+				if (cursorPosition == 0+optionShift) iprintf ("\x1B[41m");
 				else iprintf ("\x1B[47m");
 
 				iprintf(" Splash: ");
@@ -278,7 +339,7 @@ int main( int argc, char **argv) {
 					iprintf("Off(x), On( )");
 				iprintf("\n\n");
 
-				if (cursorPosition == 1) iprintf ("\x1B[41m");
+				if (cursorPosition == 1+optionShift) iprintf ("\x1B[41m");
 				else iprintf ("\x1B[47m");
 
 				if (dsiSplash)
@@ -287,7 +348,7 @@ int main( int argc, char **argv) {
 					iprintf(" ( )");
 				iprintf(" DSi Splash/H&S screen\n");
 
-				if (cursorPosition == 2) iprintf ("\x1B[41m");
+				if (cursorPosition == 2+optionShift) iprintf ("\x1B[41m");
 				else iprintf ("\x1B[47m");
 
 				if (titleAutoboot)
@@ -299,13 +360,26 @@ int main( int argc, char **argv) {
 				consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
 				consoleClear();
 
-				printf("\n");
-				if (cursorPosition == 0) {
+				iprintf("\n");
+				if ((cursorPosition == 0) && (optionCount > 2)) {
+					iprintf(" Change the SDNAND region.\n");
+					iprintf(" \n");
+					iprintf(" Original region: ");
+					if (regionChar == 'J') {
+						iprintf("JPN");
+					} else if (regionChar == 'E') {
+						iprintf("USA");
+					} else if (regionChar == 'P') {
+						iprintf("EUR");
+					} else if (regionChar == 'U') {
+						iprintf("AUS");
+					}
+				} else if (cursorPosition == 0+optionShift) {
 					iprintf(" Enable splash screen.");
-				} else if (cursorPosition == 1) {
+				} else if (cursorPosition == 1+optionShift) {
 					iprintf(" Enable showing the DSi Splash/\n");
 					iprintf(" Health & Safety screen.");
-				} else if (cursorPosition == 2) {
+				} else if (cursorPosition == 2+optionShift) {
 					iprintf(" Load title contained in\n");
 					iprintf(" sd:/hiya/autoboot.bin\n");
 					iprintf(" instead of the DSi Menu.");
@@ -329,17 +403,36 @@ int main( int argc, char **argv) {
 			}
 
 			if (pressed & KEY_A) {
-				switch (cursorPosition){
-					case 0:
-					default:
-						splash = !splash;
-						break;
-					case 1:
-						dsiSplash = !dsiSplash;
-						break;
-					case 2:
-						titleAutoboot = !titleAutoboot;
-						break;
+				if (optionCount > 2) {
+					switch (cursorPosition){
+						case 0:
+							newRegion++;
+							if (newRegion == 4) newRegion = 0;
+							break;
+						case 1:
+						default:
+							splash = !splash;
+							break;
+						case 2:
+							dsiSplash = !dsiSplash;
+							break;
+						case 3:
+							titleAutoboot = !titleAutoboot;
+							break;
+					}
+				} else {
+					switch (cursorPosition){
+						case 0:
+						default:
+							splash = !splash;
+							break;
+						case 1:
+							dsiSplash = !dsiSplash;
+							break;
+						case 2:
+							titleAutoboot = !titleAutoboot;
+							break;
+					}
 				}
 				menuprinted = true;
 			}
@@ -352,13 +445,22 @@ int main( int argc, char **argv) {
 				menuprinted = true;
 			}
 
-			if (cursorPosition < 0) cursorPosition = 2;
-			if (cursorPosition > 2) cursorPosition = 0;
+			if (cursorPosition < 0) cursorPosition = optionCount;
+			if (cursorPosition > optionCount) cursorPosition = 0;
 
 			if (pressed & KEY_START) {
 				saveSettings();
 				break;
 			}
+		}
+	}
+
+	if (newRegion != oldRegion) {
+		FILE* f_hwinfoS = fopen("sd:/sys/HWINFO_S.dat", "rb+");
+		if (f_hwinfoS) {
+			fseek(f_hwinfoS, 0x90, SEEK_SET);
+			fwrite(&newRegion, 1, 1, f_hwinfoS);
+			fclose(f_hwinfoS);
 		}
 	}
 
@@ -475,29 +577,7 @@ int main( int argc, char **argv) {
 	}
 
 	char tmdpath[256];
-	{
-		u8 regionChar = 0;
-		FILE* f_hwinfoS = fopen("sd:/sys/HWINFO_S.dat", "rb");
-		if (f_hwinfoS) {
-			fseek(f_hwinfoS, 0xA0, SEEK_SET);
-			fread(&regionChar, 1, 1, f_hwinfoS);
-			fclose(f_hwinfoS);
-		} else {
-			setupConsole();
-			consoleInit(NULL, 0, BgType_Text4bpp, BgSize_T_256x256, 15, 0, true, true);
-			consoleClear();
-			iprintf("Error!\n");
-			iprintf("\n");
-			iprintf("HWINFO_S.dat not found!");
-			consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
-			consoleClear();
-
-			while (1)
-				swiWaitForVBlank();
-		}
-
-		snprintf (tmdpath, sizeof(tmdpath), "sd:/title/00030017/484e41%x/content/title.tmd", regionChar);
-	}
+	snprintf (tmdpath, sizeof(tmdpath), "sd:/title/00030017/484e41%x/content/title.tmd", regionChar);
 
 	FILE* f_tmd = fopen(tmdpath, "rb");
 	if (f_tmd) {
