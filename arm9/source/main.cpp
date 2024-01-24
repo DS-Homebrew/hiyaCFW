@@ -158,6 +158,23 @@ int main( int argc, char **argv) {
 
 	// defaultExceptionHandler();
 
+	u32 sdIrqStatus = fifoGetValue32(FIFO_USER_01);
+	if ((sdIrqStatus & BIT(5)) != 0 && (sdIrqStatus & BIT(7)) == 0) {
+		setupConsole();
+
+		consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
+		consoleClear();
+
+		iprintf("The SD card is write-locked.\n");
+		iprintf("Please turn off the POWER,\n");
+		iprintf("remove the SD card, move the\n");
+		iprintf("write-lock switch up, re-insert\n");
+		iprintf("the SD card, then try again.");
+
+		while (1)
+			swiWaitForVBlank();
+	}
+
 	if (!fatInitDefault()) {
 		bootSplashInit();
 
@@ -190,55 +207,55 @@ int main( int argc, char **argv) {
 				consoleInit(NULL, 0, BgType_Text4bpp, BgSize_T_256x256, 15, 0, true, true);
 				consoleClear();
 
-				printf ("\x1B[46m");
+				iprintf ("\x1B[46m");
 
-				printf("hiyaCFW %s%cconfiguration\n", VER_NUMBER, sizeof(VER_NUMBER) > 11 ? '\n' : ' ');
-				printf("Press A to select, START to save");
-				printf("\n");
+				iprintf("hiyaCFW %s%cconfiguration\n", VER_NUMBER, sizeof(VER_NUMBER) > 11 ? '\n' : ' ');
+				iprintf("Press A to select, START to save");
+				iprintf("\n");
 
-				printf ("\x1B[47m");
+				iprintf ("\x1B[47m");
 
-				if (cursorPosition == 0) printf ("\x1B[41m");
-				else printf ("\x1B[47m");
+				if (cursorPosition == 0) iprintf ("\x1B[41m");
+				else iprintf ("\x1B[47m");
 
-				printf(" Splash: ");
+				iprintf(" Splash: ");
 				if (splash)
-					printf("Off( ), On(x)");
+					iprintf("Off( ), On(x)");
 				else
-					printf("Off(x), On( )");
-				printf("\n\n");
+					iprintf("Off(x), On( )");
+				iprintf("\n\n");
 
-				if (cursorPosition == 1) printf ("\x1B[41m");
-				else printf ("\x1B[47m");
+				if (cursorPosition == 1) iprintf ("\x1B[41m");
+				else iprintf ("\x1B[47m");
 
 				if (dsiSplash)
-					printf(" (x)");
+					iprintf(" (x)");
 				else
-					printf(" ( )");
-				printf(" DSi Splash/H&S screen\n");
+					iprintf(" ( )");
+				iprintf(" DSi Splash/H&S screen\n");
 
-				if (cursorPosition == 2) printf ("\x1B[41m");
-				else printf ("\x1B[47m");
+				if (cursorPosition == 2) iprintf ("\x1B[41m");
+				else iprintf ("\x1B[47m");
 
 				if (titleAutoboot)
-					printf(" (x)");
+					iprintf(" (x)");
 				else
-					printf(" ( )");
-				printf(" Autoboot title\n");
+					iprintf(" ( )");
+				iprintf(" Autoboot title\n");
 
 				consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
 				consoleClear();
 
 				printf("\n");
 				if (cursorPosition == 0) {
-					printf(" Enable splash screen.");
+					iprintf(" Enable splash screen.");
 				} else if (cursorPosition == 1) {
-					printf(" Enable showing the DSi Splash/\n");
-					printf(" Health & Safety screen.");
+					iprintf(" Enable showing the DSi Splash/\n");
+					iprintf(" Health & Safety screen.");
 				} else if (cursorPosition == 2) {
-					printf(" Load title contained in\n");
-					printf(" sd:/hiya/autoboot.bin\n");
-					printf(" instead of the DSi Menu.");
+					iprintf(" Load title contained in\n");
+					iprintf(" sd:/hiya/autoboot.bin\n");
+					iprintf(" instead of the DSi Menu.");
 				}
 
 				menuprinted = false;
@@ -316,7 +333,7 @@ int main( int argc, char **argv) {
 		if((freeSpace + oldSize) > (2u << 30) || (freeSpace + oldSize) < (20u << 20)) {
 			// Make sure hiya directory exists and make the file
 			mkdir("sd:/hiya", 0777);
-			printf("Making new dummy file...   ");
+			iprintf("Making new dummy file...   ");
 
 			// Make sure the file exists
 			file = fopen("sd:/hiya/dummy.bin", "wb");
@@ -326,11 +343,11 @@ int main( int argc, char **argv) {
 			// If free space is less than 20MiB, add free space + 2GiB + 10MiB
 			// otherwise add free space - 2GiB + 10MiB
 			truncate("sd:/hiya/dummy.bin", (freeSpace < (20u << 20) ? (freeSpace + (2 << 30)) : (freeSpace - (2 << 30))) + (10 << 20));
-			printf("Done!\n");
+			iprintf("Done!\n");
 		} else {
-			printf("Removing old dummy file... ");
+			iprintf("Removing old dummy file... ");
 			remove("sd:/hiya/dummy.bin");
-			printf("Done!\n");
+			iprintf("Done!\n");
 		}
 	}
 
@@ -429,7 +446,7 @@ int main( int argc, char **argv) {
 		setupConsole();
 		consoleInit(NULL, 0, BgType_Text4bpp, BgSize_T_256x256, 15, 0, true, true);
 		consoleClear();
-		printf ("Start failed. Error %i\n", err);
+		iprintf ("Start failed. Error %i\n", err);
 		if (err == 1) printf ("bootloader.nds not found!");
 		consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
 		consoleClear();
@@ -437,10 +454,10 @@ int main( int argc, char **argv) {
 		setupConsole();
 		consoleInit(NULL, 0, BgType_Text4bpp, BgSize_T_256x256, 15, 0, true, true);
 		consoleClear();
-		printf("Error!\n");
-		printf("\n");
-		printf("Launcher's title.tmd was\n");
-		printf("not found!\n");
+		iprintf("Error!\n");
+		iprintf("\n");
+		iprintf("Launcher's title.tmd was\n");
+		iprintf("not found!\n");
 		consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
 		consoleClear();
 	}

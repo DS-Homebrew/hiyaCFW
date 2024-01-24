@@ -28,9 +28,8 @@ redistribute it freely, subject to the following restrictions:
 
 ---------------------------------------------------------------------------------*/
 #include <nds.h>
-#include <string.h>
-#include <stdio.h>
-#include <stdlib.h>
+
+#define SD_IRQ_STATUS (*(vu32*)0x400481C)
 
 #include "fifocheck.h"
 
@@ -50,6 +49,8 @@ int main(void) {
 
 	installSystemFIFO();
 	
+	fifoSendValue32(FIFO_USER_01, SD_IRQ_STATUS);
+
 	irqSet(IRQ_VCOUNT, VcountHandler);
 
 	irqEnable( IRQ_VBLANK | IRQ_VCOUNT | IRQ_NETWORK );
