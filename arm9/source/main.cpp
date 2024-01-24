@@ -14,8 +14,8 @@
 
 #include "topLoad.h"
 #include "subLoad.h"
-#include "topError.h"
-#include "subError.h"
+// #include "topError.h"
+// #include "subError.h"
 
 #define CONSOLE_SCREEN_WIDTH 32
 #define CONSOLE_SCREEN_HEIGHT 24
@@ -176,13 +176,33 @@ int main( int argc, char **argv) {
 	}
 
 	if (!fatInitDefault()) {
-		bootSplashInit();
+		/* bootSplashInit();
 
 		// Display Error Screen
 		swiDecompressLZSSVram((void*)topErrorBitmap, BG_GFX, 0, &decompressBiosCallback);
 		swiDecompressLZSSVram((void*)subErrorBitmap, BG_GFX_SUB, 0, &decompressBiosCallback);
 		tonccpy(&BG_PALETTE[0], topErrorPal, topErrorPalLen);
-		tonccpy(&BG_PALETTE_SUB[0], subErrorPal, subErrorPalLen);
+		tonccpy(&BG_PALETTE_SUB[0], subErrorPal, subErrorPalLen); */
+
+		setupConsole();
+
+		consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
+		consoleClear();
+
+		iprintf("FAT init failed!");
+
+		while (1)
+			swiWaitForVBlank();
+	}
+
+	if ((access("sd:/", F_OK) != 0) && (access("fat:/", F_OK) == 0)) {
+		setupConsole();
+
+		consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
+		consoleClear();
+
+		iprintf("hiyaCFW is not compatible\n");
+		iprintf("with flashcards!");
 
 		while (1)
 			swiWaitForVBlank();
