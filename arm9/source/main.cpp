@@ -442,11 +442,28 @@ int main( int argc, char **argv) {
 	}
 
 	char tmdpath[256];
-	for (u8 i = 0x41; i <= 0x5A; i++) {
-		snprintf (tmdpath, sizeof(tmdpath), "sd:/title/00030017/484e41%x/content/title.tmd", i);
-		if (access(tmdpath, F_OK) == 0) {
-			break;
+	{
+		u8 regionChar = 0;
+		FILE* f_hwinfoS = fopen("sd:/sys/HWINFO_S.dat", "rb");
+		if (f_hwinfoS) {
+			fseek(f_hwinfoS, 0xA0, SEEK_SET);
+			fread(&regionChar, 1, 1, f_hwinfoS);
+			fclose(f_hwinfoS);
+		} else {
+			setupConsole();
+			consoleInit(NULL, 0, BgType_Text4bpp, BgSize_T_256x256, 15, 0, true, true);
+			consoleClear();
+			iprintf("Error!\n");
+			iprintf("\n");
+			iprintf("HWINFO_S.dat not found!");
+			consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
+			consoleClear();
+
+			while (1)
+				swiWaitForVBlank();
 		}
+
+		snprintf (tmdpath, sizeof(tmdpath), "sd:/title/00030017/484e41%x/content/title.tmd", regionChar);
 	}
 
 	FILE* f_tmd = fopen(tmdpath, "rb");
@@ -477,7 +494,7 @@ int main( int argc, char **argv) {
 		iprintf("Error!\n");
 		iprintf("\n");
 		iprintf("Launcher's title.tmd was\n");
-		iprintf("not found!\n");
+		iprintf("not found!");
 		consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
 		consoleClear();
 	}
