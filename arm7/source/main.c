@@ -56,6 +56,10 @@ int main(void) {
 	irqEnable( IRQ_VBLANK | IRQ_VCOUNT | IRQ_NETWORK );
 
 	while (1) {
+		/* if (*(u32*)0x02FFFD0C == 0x54534453) { // 'SDST'
+			fifoSendValue32(FIFO_USER_01, SD_IRQ_STATUS);
+			*(u32*)0x02FFFD0C = 0;
+		} */
 		fifocheck();
 		swiWaitForVBlank();
 	}

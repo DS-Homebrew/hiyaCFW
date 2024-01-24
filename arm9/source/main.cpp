@@ -160,6 +160,37 @@ int main( int argc, char **argv) {
 
 	// defaultExceptionHandler();
 
+	/* scanKeys();
+	if ((keysHeld() & KEY_RIGHT) && (keysHeld() & KEY_A)) {
+		setupConsole();
+
+		consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
+		consoleClear();
+
+		iprintf("Please remove the SD Card and\n");
+		iprintf("insert the SD Card containing\n");
+		iprintf("hiyaCFW, then press A\n");
+		iprintf("to continue.");
+
+		// Prevent accidential presses
+		for (int i = 0; i < 60; i++) {
+			swiWaitForVBlank();
+		}
+
+		while (1) {
+			scanKeys();
+			if (keysHeld() & KEY_A) break;
+			swiWaitForVBlank();
+		}
+
+		for (int i = 0; i < 24; i++) {
+			swiWaitForVBlank();
+		}
+	}
+
+	*(u32*)0x0CFFFD0C = 0x54534453; // 'SDST'
+	while (*(u32*)0x0CFFFD0C != 0) { swiDelay(100); } */
+
 	u32 sdIrqStatus = fifoGetValue32(FIFO_USER_01);
 	if ((sdIrqStatus & BIT(5)) != 0 && (sdIrqStatus & BIT(7)) == 0) {
 		setupConsole();
