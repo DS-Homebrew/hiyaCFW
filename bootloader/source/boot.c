@@ -75,35 +75,6 @@ extern unsigned long dsiSD;
 extern unsigned long dsiMode;
 
 /*-------------------------------------------------------------------------
-passArgs_ARM7
-Copies the command line arguments to the end of the ARM9 binary, 
-then sets a flag in memory for the loaded NDS to use
---------------------------------------------------------------------------*/
-void passArgs_ARM7 (void) {
-	u32 ARM9_DST = *((u32*)(NDS_HEAD + 0x028));
-	u32 ARM9_LEN = *((u32*)(NDS_HEAD + 0x02C));
-	u32* argSrc;
-	u32* argDst;
-	
-	if (!argStart || !argSize) return;
-
-	if ( ARM9_DST == 0 && ARM9_LEN == 0) {
-		ARM9_DST = *((u32*)(NDS_HEAD + 0x038));
-		ARM9_LEN = *((u32*)(NDS_HEAD + 0x03C));
-	}
-	
-	argSrc = (u32*)(argStart + (int)&_start);
-	
-	argDst = (u32*)((ARM9_DST + ARM9_LEN + 3) & ~3);		// Word aligned 
-	
-	memcpy(argDst, argSrc, argSize);
-	
-	__system_argv->argvMagic = ARGV_MAGIC;
-	__system_argv->commandLine = (char*)argDst;
-	__system_argv->length = argSize;
-}
-
-/*-------------------------------------------------------------------------
 resetMemory_ARM7
 Clears all of the NDS's RAM that is visible to the ARM7
 Written by Darkain.
@@ -224,10 +195,6 @@ int main (void) {
 	{
 		return -1;
 	}
-	if ((fileCluster < CLUSTER_FIRST) || (fileCluster >= CLUSTER_EOF)) 	/* Invalid file cluster specified */
-	{
-		fileCluster = getBootFileCluster(bootName);
-	}
 	if (fileCluster == CLUSTER_FREE)
 	{
 		return -1;
@@ -255,9 +222,6 @@ int main (void) {
 	// Load the NDS file
 	loadBinary_ARM7(fileCluster);
 
-	// Pass command line arguments to loaded program
-	passArgs_ARM7();
-	
 	// Reset SDMC. Required to get bootloader to init things correctly.
 	sdmmc_controller_init();
 	*(vu16*)(SDMMC_BASE + REG_SDDATACTL32) &= 0xFFFDu;
