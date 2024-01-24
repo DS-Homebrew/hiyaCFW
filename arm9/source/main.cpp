@@ -29,6 +29,7 @@ static char tmdBuffer[TMD_SIZE];
 bool splash = true;
 bool dsiSplash = false;
 bool titleAutoboot = false;
+bool eraseUnlaunch = true;
 
 bool splashFound[2] = {false};
 bool splashBmp[2] = {false};
@@ -132,6 +133,7 @@ void loadSettings(void) {
 	splash = settingsini.GetInt("HIYA-CFW", "SPLASH", 0);
 	dsiSplash = settingsini.GetInt("HIYA-CFW", "DSI_SPLASH", 0);
 	titleAutoboot = settingsini.GetInt("HIYA-CFW", "TITLE_AUTOBOOT", 0);
+	eraseUnlaunch = settingsini.GetInt("HIYA-CFW", "ERASE_UNLAUNCH", 1);
 }
 
 void saveSettings(void) {
@@ -468,7 +470,7 @@ int main( int argc, char **argv) {
 
 	FILE* f_tmd = fopen(tmdpath, "rb");
 	if (f_tmd) {
-		if (getFileSize(tmdpath) > TMD_SIZE) {
+		if ((getFileSize(tmdpath) > TMD_SIZE) && eraseUnlaunch) {
 			// Read big .tmd file at the correct size
 			f_tmd = fopen(tmdpath, "rb");
 			fread(tmdBuffer, 1, TMD_SIZE, f_tmd);
