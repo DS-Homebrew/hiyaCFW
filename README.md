@@ -16,12 +16,12 @@ HiyaCFW is the world's FIRST Nintendo DSi CFW, made by the talented folks over o
 # Features
 
 - Run custom DSiWare
-- Have NAND to SD card redirection
+- NAND to SD card redirection
 - Run NAND backups from any console
 - Replace the system menu with **TW**i**L**ight Menu++
 - Run blocked flashcards (such as R4 Ultra)
 - Remove region-locking
-- Change the region (Not compatible with CHN and KOR NANDs)
+- Change the NAND region (Not compatible with CHN and KOR NANDs)
 - Run 3DS-exclusive DSiWare (such as WarioWare Touched)
 - Custom splash screens
 
