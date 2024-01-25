@@ -590,14 +590,22 @@ int main( int argc, char **argv) {
 		fifoSendValue32(FIFO_USER_04, 1);
 	}
 
-	char tmdpath[256];
-	snprintf (tmdpath, sizeof(tmdpath), "sd:/title/00030017/484e41%x/content/title.tmd", regionChar);
+	char tmdpath[64];
+	sprintf (tmdpath, "sd:/title/00030017/484e41%x/content/title.tmd", regionChar);
 
 	FILE* f_tmd = fopen(tmdpath, "rb");
 	if (f_tmd) {
+		uint8_t currentAttribs = FAT_getAttr(tmdpath);
+		uint8_t newAttribs = currentAttribs;
+
 		if ((getFileSize(tmdpath) > TMD_SIZE) && eraseUnlaunch) {
+			newAttribs &= ~ATTR_READONLY;
+			if (currentAttribs != newAttribs) {
+				FAT_setAttr(tmdpath, newAttribs);
+			}
+
 			// Read big .tmd file at the correct size
-			f_tmd = fopen(tmdpath, "rb");
+			FILE* f_tmd = fopen(tmdpath, "rb");
 			fread(tmdBuffer, 1, TMD_SIZE, f_tmd);
 			fclose(f_tmd);
 
@@ -606,6 +614,26 @@ int main( int argc, char **argv) {
 			fwrite(tmdBuffer, 1, TMD_SIZE, f_tmd);
 			fclose(f_tmd);
 		}
+
+		newAttribs |= ATTR_READONLY;
+		if (currentAttribs != newAttribs) {
+			FAT_setAttr(tmdpath, newAttribs);
+		}
+
+		char appPath[64];
+		int appVer = 0;
+
+		fseek(f_tmd, 0x1E7, SEEK_SET);
+		appVer = fgetc(f_tmd);
+		sprintf(appPath, "sd:/title/00030017/484e41%x/content/0000000%i.app", regionChar, appVer);
+		currentAttribs = FAT_getAttr(appPath);
+		newAttribs = currentAttribs;
+
+		newAttribs |= ATTR_READONLY;
+		if (currentAttribs != newAttribs) {
+			FAT_setAttr(appPath, newAttribs);
+		}
+
 		int err = runNdsFile("sd:/hiya/BOOTLOADER.NDS", 0, NULL);
 		setupConsole();
 		consoleInit(NULL, 0, BgType_Text4bpp, BgSize_T_256x256, 15, 0, true, true);
