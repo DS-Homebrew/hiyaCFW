@@ -464,7 +464,7 @@ int main( int argc, char **argv) {
 			} else if (newRegion == 4) { // CHN
 				supportedLangBitmask = 0x40; // Chinese
 			} else if (newRegion == 3) { // AUS
-				supportedLangBitmask = BIT(1); // English
+				supportedLangBitmask = 0x02; // English
 			} else if (newRegion == 2) { // EUR
 				supportedLangBitmask = 0x3E; // English, French, German, Italian, Spanish
 			} else if (newRegion == 1) { // USA
