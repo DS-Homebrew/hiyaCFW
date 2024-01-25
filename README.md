@@ -37,5 +37,5 @@ Once everything is downloaded and installed, `git clone` this repository, naviga
 - Apache Thunder, NoCash, StuckPixel, Shutterbug2000, and Gericom.
 - Drenn: .bmp loading code from GameYob, for custom splash screens.
 - Pk11: .gif loading code for animated splash screens.
-- RocketRobz: Logo graphic, and settings screen.
+- RocketRobz: Logo graphic, settings screen, support for region-changing and any NAND backup.
 - WinterMute/devkitPro: For the majority of the base code like nds-bootloader which this loader uses.
