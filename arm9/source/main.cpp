@@ -458,6 +458,20 @@ int main( int argc, char **argv) {
 	if (newRegion != oldRegion) {
 		FILE* f_hwinfoS = fopen("sd:/sys/HWINFO_S.dat", "rb+");
 		if (f_hwinfoS) {
+			u32 supportedLangBitmask = 0x01; // JPN
+			if (newRegion == 5) {
+				supportedLangBitmask = 0x80; // KOR
+			} else if (newRegion == 4) {
+				supportedLangBitmask = 0x40; // CHN
+			} else if (newRegion == 3) {
+				supportedLangBitmask = BIT(1); // AUS
+			} else if (newRegion == 2) {
+				supportedLangBitmask = 0x3E; // EUR
+			} else if (newRegion == 1) {
+				supportedLangBitmask = 0x26; // USA
+			}
+			fseek(f_hwinfoS, 0x88, SEEK_SET);
+			fwrite(&supportedLangBitmask, sizeof(u32), 1, f_hwinfoS);
 			fseek(f_hwinfoS, 0x90, SEEK_SET);
 			fwrite(&newRegion, 1, 1, f_hwinfoS);
 			fclose(f_hwinfoS);
