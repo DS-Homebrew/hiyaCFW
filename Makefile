@@ -25,7 +25,8 @@ export TOPDIR	:=	$(CURDIR)
 NITRO_FILES	:=
 
 # These set the information text in the nds file
-GAME_TITLE		:= hiyaCFW
+GAME_ICON	:= icon.bmp
+GAME_TITLE	:= hiyaCFW
 GAME_SUBTITLE1	:= CFW for Nintendo DSi
 GAME_SUBTITLE2	:= made by Apache Thunder
 
