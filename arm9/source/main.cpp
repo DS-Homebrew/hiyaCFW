@@ -363,6 +363,7 @@ int main( int argc, char **argv) {
 				iprintf("\n");
 				if ((cursorPosition == 0) && (optionCount > 2)) {
 					iprintf(" Change the SDNAND region.\n");
+					iprintf(" System settings will be reset.\n");
 					iprintf(" \n");
 					iprintf(" Original region: ");
 					if (regionChar == 'J') {
@@ -476,6 +477,9 @@ int main( int argc, char **argv) {
 			fwrite(&newRegion, 1, 1, f_hwinfoS);
 			fclose(f_hwinfoS);
 		}
+		// Reset system settings to work around touch inputs not working
+		remove("sd:/shared1/TWLCFG0.dat");
+		remove("sd:/shared1/TWLCFG1.dat");
 	}
 
 	// Create dummy file
