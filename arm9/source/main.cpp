@@ -477,9 +477,11 @@ int main( int argc, char **argv) {
 			fwrite(&newRegion, 1, 1, f_hwinfoS);
 			fclose(f_hwinfoS);
 		}
-		// Reset system settings to work around touch inputs not working
-		remove("sd:/shared1/TWLCFG0.dat");
-		remove("sd:/shared1/TWLCFG1.dat");
+		if (regionChar == 'J') {
+			// Reset system settings to work around touch inputs not working
+			remove("sd:/shared1/TWLCFG0.dat");
+			remove("sd:/shared1/TWLCFG1.dat");
+		}
 	}
 
 	// Create dummy file
