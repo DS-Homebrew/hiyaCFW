@@ -363,7 +363,9 @@ int main( int argc, char **argv) {
 				iprintf("\n");
 				if ((cursorPosition == 0) && (optionCount > 2)) {
 					iprintf(" Change the SDNAND region.\n");
-					iprintf(" System settings will be reset.\n");
+					if (regionChar == 'J') {
+						iprintf(" System settings will be reset.\n");
+					}
 					iprintf(" \n");
 					iprintf(" Original region: ");
 					if (regionChar == 'J') {
