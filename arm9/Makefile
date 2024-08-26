@@ -15,7 +15,7 @@ include $(DEVKITARM)/ds_rules
 ifneq ($(shell echo $(shell git tag -l --points-at HEAD) | head -c 1),)
 GIT_VER := $(shell git tag -l --points-at HEAD)
 else
-GIT_VER := $(shell git describe --abbrev=0 --tags)-$(shell git rev-parse --short HEAD)
+GIT_VER := $(shell git describe --tags --match v[0-9]* --abbrev=7 | sed 's/-[0-9]*-g/-/')
 endif
 
 # Ensure version.h exists
