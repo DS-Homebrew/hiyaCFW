@@ -106,7 +106,7 @@ typedef struct
 			u8	fileSysType[8];
 			// Bootcode
 			u8	bootCode[448];
-		}	fat16;
+		} __PACKED fat16;
 		struct  
 		{
 			// FAT32 extended block
@@ -126,7 +126,7 @@ typedef struct
 			u8	fileSysType[8];
 			// Bootcode
 			u8	bootCode[420];
-		}	fat32;
+		} __PACKED fat32;
 	}	extBlock;
 
 	__PACKED	u16	bootSig;
@@ -345,7 +345,7 @@ bool FAT_InitFiles (bool initCard)
 	// Read in boot sector
 	bootSec = (BOOT_SEC*) globalBuffer;
 	CARD_ReadSector (bootSector,  bootSec);
-	
+
 	// Store required information about the file system
 	if (bootSec->sectorsPerFAT != 0)
 	{
