@@ -363,9 +363,6 @@ int main( int argc, char **argv) {
 				iprintf("\n");
 				if ((cursorPosition == 0) && (optionCount > 2)) {
 					iprintf(" Change the SDNAND region.\n");
-					if (regionChar == 'J') {
-						iprintf(" System settings will be reset.\n");
-					}
 					iprintf(" \n");
 					iprintf(" Original region: ");
 					if (regionChar == 'J') {
@@ -461,70 +458,17 @@ int main( int argc, char **argv) {
 	if (newRegion != oldRegion) {
 		FILE* f_hwinfoS = fopen("sd:/sys/HWINFO_S.dat", "rb+");
 		if (f_hwinfoS) {
-			u32 supportedLangBitmask = 0x01; // JPN: Japanese
+			u32 supportedLangBitmask = 0x3F; // Japanese, English, French, German, Italian, Spanish
 			if (newRegion == 5) { // KOR
 				supportedLangBitmask = 0x80; // Korean
 			} else if (newRegion == 4) { // CHN
 				supportedLangBitmask = 0x40; // Chinese
-			} else if (newRegion == 3) { // AUS
-				supportedLangBitmask = 0x02; // English
-			} else if (newRegion == 2) { // EUR
-				supportedLangBitmask = 0x3E; // English, French, German, Italian, Spanish
-			} else if (newRegion == 1) { // USA
-				supportedLangBitmask = 0x26; // English, French, Spanish
 			}
 			fseek(f_hwinfoS, 0x88, SEEK_SET);
 			fwrite(&supportedLangBitmask, sizeof(u32), 1, f_hwinfoS);
 			fseek(f_hwinfoS, 0x90, SEEK_SET);
 			fwrite(&newRegion, 1, 1, f_hwinfoS);
 			fclose(f_hwinfoS);
-		}
-		if (regionChar == 'J') {
-			// Reset system settings to work around touch inputs not working
-			remove("sd:/shared1/TWLCFG0.dat");
-			remove("sd:/shared1/TWLCFG1.dat");
-		}
-	}
-
-	// Create dummy file
-	// Check the free space
-	struct statvfs st;
-	statvfs("sd:/", &st);
-	u32 freeSpace = st.f_bsize * st.f_bfree;
-	u64 realFreeSpace = st.f_bsize * st.f_bfree;
-
-	// If the free space is bigger than 2GiB (using a u32 so always 0 - 4GiB)
-	// or the free space is less than 20MiB (and the actual free space is over 4GiB)
-	if(freeSpace > (2u << 30) || (freeSpace < (20u << 20) && realFreeSpace > (4u << 30))) {
-		consoleDemoInit();
-		size_t oldSize = 0;
-		// Check old dummy file size to see if it can just be removed
-		FILE *file = fopen("sd:/hiya/dummy.bin", "rb");
-		if(file) {
-			fseek(file, 0, SEEK_END);
-			oldSize = ftell(file);
-			fclose(file);
-		}
-
-		// Check that dummy file is still needed
-		if((freeSpace + oldSize) > (2u << 30) || (freeSpace + oldSize) < (20u << 20)) {
-			// Make sure hiya directory exists and make the file
-			mkdir("sd:/hiya", 0777);
-			iprintf("Making new dummy file...   ");
-
-			// Make sure the file exists
-			file = fopen("sd:/hiya/dummy.bin", "wb");
-			if(file)
-				fclose(file);
-
-			// If free space is less than 20MiB, add free space + 2GiB + 10MiB
-			// otherwise add free space - 2GiB + 10MiB
-			truncate("sd:/hiya/dummy.bin", (freeSpace < (20u << 20) ? (freeSpace + (2 << 30)) : (freeSpace - (2 << 30))) + (10 << 20));
-			iprintf("Done!\n");
-		} else {
-			iprintf("Removing old dummy file... ");
-			remove("sd:/hiya/dummy.bin");
-			iprintf("Done!\n");
 		}
 	}
 
