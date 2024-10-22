@@ -3,7 +3,7 @@
   <a href="https://gbatemp.net/threads/release-hiyacfw-worlds-first-nintendo-dsi-cfw.502631/">
    <img src="https://img.shields.io/badge/GBAtemp-Thread-blue.svg" alt="GBAtemp Thread">
   </a>
-  <a href="https://discord.gg/yD3spjv">
+  <a href="https://discord.gg/fCzqcWteC4">
    <img src="https://img.shields.io/badge/Discord%20Server-%23other--nds--homebrew-green.svg" alt="Discord Server">
   </a>
   <a href="https://github.com/RocketRobz/hiyaCFW/actions?query=workflow%3A%22Build+hiyaCFW%22">
