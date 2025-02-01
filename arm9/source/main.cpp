@@ -364,10 +364,6 @@ int main( int argc, char **argv) {
 				if ((cursorPosition == 0) && (optionCount > 2)) {
 					iprintf(" Change the SDNAND region.\n");
 					iprintf(" \n");
-					iprintf(" This will break apps such as\n");
-					iprintf(" DSi Shop and 3DS Transfer\n");
-					iprintf(" Tool.\n");
-					iprintf(" \n");
 					iprintf(" Original region: ");
 					if (regionChar == 'J') {
 						iprintf("JPN");
@@ -462,11 +458,17 @@ int main( int argc, char **argv) {
 	if (newRegion != oldRegion) {
 		FILE* f_hwinfoS = fopen("sd:/sys/HWINFO_S.dat", "rb+");
 		if (f_hwinfoS) {
-			u32 supportedLangBitmask = 0x3F; // Japanese, English, French, German, Italian, Spanish
+			u32 supportedLangBitmask = 0x01; // JPN: Japanese
 			if (newRegion == 5) { // KOR
 				supportedLangBitmask = 0x80; // Korean
 			} else if (newRegion == 4) { // CHN
 				supportedLangBitmask = 0x40; // Chinese
+			} else if (newRegion == 3) { // AUS
+				supportedLangBitmask = 0x02; // English
+			} else if (newRegion == 2) { // EUR
+				supportedLangBitmask = 0x3E; // English, French, German, Italian, Spanish
+			} else if (newRegion == 1) { // USA
+				supportedLangBitmask = 0x26; // English, French, Spanish
 			}
 			fseek(f_hwinfoS, 0x88, SEEK_SET);
 			fwrite(&supportedLangBitmask, sizeof(u32), 1, f_hwinfoS);
