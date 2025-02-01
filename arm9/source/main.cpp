@@ -364,6 +364,10 @@ int main( int argc, char **argv) {
 				if ((cursorPosition == 0) && (optionCount > 2)) {
 					iprintf(" Change the SDNAND region.\n");
 					iprintf(" \n");
+					iprintf(" This will break apps such as\n");
+					iprintf(" DSi Shop and 3DS Transfer\n");
+					iprintf(" Tool.\n");
+					iprintf(" \n");
 					iprintf(" Original region: ");
 					if (regionChar == 'J') {
 						iprintf("JPN");
