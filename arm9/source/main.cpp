@@ -143,9 +143,6 @@ bool loadBMP(bool top) {
 
 		dmaCopyWords(3, dsImageBuffer8, top ? BG_GFX : BG_GFX_SUB, 256*192);
 		delete[] dsImageBuffer8;
-
-		irqSet(IRQ_HBLANK, hBlankHandler);
-		irqEnable(IRQ_HBLANK);
 	}
 	return true;
 }
@@ -171,10 +168,10 @@ void bootSplashInit() {
 		bgInitSub(3, BgType_Bmp8, BgSize_B8_256x256, 0, 0);
 
 	// Clear backgrounds
-	BG_PALETTE[0xFF] = 0xFFFF;
-	BG_PALETTE_SUB[0xFF] = 0xFFFF;
-	toncset16(BG_GFX, 0xFFFF, 256 * 256 * 2);
-	toncset16(BG_GFX_SUB, 0xFFFF, 256 * 256 * 2);
+	toncset16(BG_PALETTE, 0, 256);
+	toncset16(BG_PALETTE_SUB, 0, 256);
+	toncset16(BG_GFX, 0, 256 * 256 * 2);
+	toncset16(BG_GFX_SUB, 0, 256 * 256 * 2);
 }
 
 void loadScreen() {
@@ -194,6 +191,11 @@ void loadScreen() {
 	} else if (!splashFound[false]) {
 		tonccpy(BG_PALETTE_SUB, subLoadPal, subLoadPalLen);
 		swiDecompressLZSSVram((void*)subLoadBitmap, BG_GFX_SUB, 0, &decompressBiosCallback);
+	}
+
+	if (bothAreBmps) {
+		irqSet(IRQ_HBLANK, hBlankHandler);
+		irqEnable(IRQ_HBLANK);
 	}
 }
 
