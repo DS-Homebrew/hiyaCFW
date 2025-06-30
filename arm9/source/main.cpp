@@ -33,8 +33,32 @@ bool eraseUnlaunch = true;
 
 bool splashFound[2] = {false};
 bool splashBmp[2] = {false};
+bool bothAreBmps = false;
+u16* dsImageBuffer[2];
 
 Gif gif[2];
+
+void hBlankHandler() {
+	int scanline = REG_VCOUNT;
+	if (scanline > 192) {
+		return;
+	} else if (scanline == 192) {
+		if (splashBmp[0]) {
+			dmaCopyWordsAsynch(0, dsImageBuffer[0], BG_PALETTE_SUB, 256*2);
+		}
+		if (splashBmp[1]) {
+			dmaCopyWordsAsynch(1, dsImageBuffer[1], BG_PALETTE, 256*2);
+		}
+	} else {
+		scanline++;
+		if (splashBmp[0]) {
+			dmaCopyWordsAsynch(0, dsImageBuffer[0]+(scanline*256), BG_PALETTE_SUB, 256*2);
+		}
+		if (splashBmp[1]) {
+			dmaCopyWordsAsynch(1, dsImageBuffer[1]+(scanline*256), BG_PALETTE, 256*2);
+		}
+	}
+}
 
 bool loadBMP(bool top) {
 	FILE* file = fopen((top ? "sd:/hiya/splashtop.bmp" : "sd:/hiya/splashbottom.bmp"), "rb");
@@ -52,6 +76,11 @@ bool loadBMP(bool top) {
 		return false;
 	}
 
+	if (bothAreBmps) {
+		dsImageBuffer[top] = new u16[256*192];
+		toncset(dsImageBuffer[top], 0, 256*192);
+	}
+
 	fseek(file, 0xE, SEEK_SET);
 	u8 headerSize = fgetc(file);
 	bool rgb565 = false;
@@ -65,17 +94,59 @@ bool loadBMP(bool top) {
 	}
 	u16 *bmpImageBuffer = new u16[width * height];
 	fread(bmpImageBuffer, 2, width * height, file);
-	u16 *dst = (top ? BG_GFX : BG_GFX_SUB) + ((191 - ((192 - height) / 2)) * 256) + (256 - width) / 2;
 	u16 *src = bmpImageBuffer;
-	for (uint y = 0; y < height; y++, dst -= 256) {
-		for (uint x = 0; x < width; x++) {
-			u16 val = *(src++);
-			*(dst + x) = ((val >> (rgb565 ? 11 : 10)) & 0x1F) | ((val >> (rgb565 ? 1 : 0)) & (0x1F << 5)) | (val & 0x1F) << 10 | BIT(15);
+	if (bothAreBmps) {
+		u16 *dst = dsImageBuffer[top] + ((191 - ((192 - height) / 2)) * 256) + (256 - width) / 2;
+		if (rgb565) {
+			for (uint y = 0; y < height; y++, dst -= 256) {
+				for (uint x = 0; x < width; x++) {
+					u16 val = *(src++);
+					const u16 green = ((val) & (0x3F << 5));
+					u16 color = ((val >> 11) & 0x1F) | (val & 0x1F) << 10;
+					if (green & BIT(5)) {
+						color |= BIT(15);
+					}
+					for (int g = 6; g <= 10; g++) {
+						if (green & BIT(g)) {
+							color |= BIT(g-1);
+						}
+					}
+					*(dst + x) = color;
+				}
+			}
+		} else {
+			for (uint y = 0; y < height; y++, dst -= 256) {
+				for (uint x = 0; x < width; x++) {
+					u16 val = *(src++);
+					*(dst + x) = ((val >> 10) & 0x1F) | ((val) & (0x1F << 5)) | (val & 0x1F) << 10;
+				}
+			}
+		}
+	} else {
+		u16 *dst = (top ? BG_GFX : BG_GFX_SUB) + ((191 - ((192 - height) / 2)) * 256) + (256 - width) / 2;
+		for (uint y = 0; y < height; y++, dst -= 256) {
+			for (uint x = 0; x < width; x++) {
+				u16 val = *(src++);
+				*(dst + x) = ((val >> (rgb565 ? 11 : 10)) & 0x1F) | ((val >> (rgb565 ? 1 : 0)) & (0x1F << 5)) | (val & 0x1F) << 10 | BIT(15);
+			}
 		}
 	}
 
 	delete[] bmpImageBuffer;
 	fclose(file);
+
+	if (bothAreBmps) {
+		u8* dsImageBuffer8 = new u8[256*192];
+		for (int i = 0; i < 256*192; i++) {
+			dsImageBuffer8[i] = i;
+		}
+
+		dmaCopyWords(3, dsImageBuffer8, top ? BG_GFX : BG_GFX_SUB, 256*192);
+		delete[] dsImageBuffer8;
+
+		irqSet(IRQ_HBLANK, hBlankHandler);
+		irqEnable(IRQ_HBLANK);
+	}
 	return true;
 }
 
@@ -89,12 +160,12 @@ void bootSplashInit() {
 	vramSetBankH(VRAM_H_LCD);
 	vramSetBankG(VRAM_G_LCD);
 
-	if (splashFound[true] && splashBmp[true])
+	if (splashFound[true] && splashBmp[true] && !splashBmp[false])
 		bgInit(3, BgType_Bmp16, BgSize_B16_256x256, 0, 0);
 	else
 		bgInit(3, BgType_Bmp8, BgSize_B8_256x256, 0, 0);
 
-	if (splashFound[false] && splashBmp[false])
+	if (splashFound[false] && !splashBmp[true] && splashBmp[false])
 		bgInitSub(3, BgType_Bmp16, BgSize_B16_256x256, 0, 0);
 	else
 		bgInitSub(3, BgType_Bmp8, BgSize_B8_256x256, 0, 0);
@@ -109,17 +180,19 @@ void bootSplashInit() {
 void loadScreen() {
 	bootSplashInit();
 
+	bothAreBmps = ((!splashFound[true] || splashBmp[true]) && (!splashFound[false] || splashBmp[false]));
+
 	// Display Load Screen
 	if (splashBmp[true]) {
 		loadBMP(true);
 	} else if (!splashFound[true]) {
-		tonccpy(&BG_PALETTE[0], topLoadPal, topLoadPalLen);
+		tonccpy(BG_PALETTE, topLoadPal, topLoadPalLen);
 		swiDecompressLZSSVram((void*)topLoadBitmap, BG_GFX, 0, &decompressBiosCallback);
 	}
 	if (splashBmp[false]) {
 		loadBMP(false);
 	} else if (!splashFound[false]) {
-		tonccpy(&BG_PALETTE_SUB[0], subLoadPal, subLoadPalLen);
+		tonccpy(BG_PALETTE_SUB, subLoadPal, subLoadPalLen);
 		swiDecompressLZSSVram((void*)subLoadBitmap, BG_GFX_SUB, 0, &decompressBiosCallback);
 	}
 }
@@ -569,6 +642,10 @@ int main( int argc, char **argv) {
 			fclose(f_tmd);
 		}
 		int err = runNdsFile("sd:/hiya/BOOTLOADER.NDS", 0, NULL);
+		if (bothAreBmps) {
+			while (dmaBusy(0) || dmaBusy(1));
+			irqDisable(IRQ_HBLANK);
+		}
 		setupConsole();
 		consoleInit(NULL, 0, BgType_Text4bpp, BgSize_T_256x256, 15, 0, true, true);
 		consoleClear();
@@ -577,6 +654,10 @@ int main( int argc, char **argv) {
 		consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
 		consoleClear();
 	} else {
+		if (bothAreBmps) {
+			while (dmaBusy(0) || dmaBusy(1));
+			irqDisable(IRQ_HBLANK);
+		}
 		setupConsole();
 		consoleInit(NULL, 0, BgType_Text4bpp, BgSize_T_256x256, 15, 0, true, true);
 		consoleClear();
