@@ -18,8 +18,6 @@ static void dsiOnly_setBrightness(u8 screen, s8 bright) {
 void dsiOnly(void) {
 	if (isDSiMode()) return;	// Proceed running on DSi
 
-	*(u16*)0x0400006C |= BIT(14);
-	*(u16*)0x0400006C &= BIT(15);
 	dsiOnly_setBrightness(0, 31);
 	dsiOnly_setBrightness(1, 31);
 
