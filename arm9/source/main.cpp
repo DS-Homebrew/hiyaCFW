@@ -33,7 +33,7 @@ bool eraseUnlaunch = true;
 
 bool splashFound[2] = {false};
 bool splashBmp[2] = {false};
-bool bothAreBmps = false;
+bool rgb565DisplayMode = false;
 u16* dsImageBuffer[2];
 
 Gif gif[2];
@@ -76,7 +76,7 @@ bool loadBMP(bool top) {
 		return false;
 	}
 
-	if (bothAreBmps) {
+	if (rgb565DisplayMode) {
 		dsImageBuffer[top] = new u16[256*192];
 		toncset(dsImageBuffer[top], 0, 256*192);
 	}
@@ -95,7 +95,7 @@ bool loadBMP(bool top) {
 	u16 *bmpImageBuffer = new u16[width * height];
 	fread(bmpImageBuffer, 2, width * height, file);
 	u16 *src = bmpImageBuffer;
-	if (bothAreBmps) {
+	if (rgb565DisplayMode) {
 		u16 *dst = dsImageBuffer[top] + ((191 - ((192 - height) / 2)) * 256) + (256 - width) / 2;
 		if (rgb565) {
 			for (uint y = 0; y < height; y++, dst -= 256) {
@@ -135,7 +135,7 @@ bool loadBMP(bool top) {
 	delete[] bmpImageBuffer;
 	fclose(file);
 
-	if (bothAreBmps) {
+	if (rgb565DisplayMode) {
 		u8* dsImageBuffer8 = new u8[256*192];
 		for (int i = 0; i < 256*192; i++) {
 			dsImageBuffer8[i] = i;
@@ -177,7 +177,7 @@ void bootSplashInit() {
 void loadScreen() {
 	bootSplashInit();
 
-	bothAreBmps = ((!splashFound[true] || splashBmp[true]) && (!splashFound[false] || splashBmp[false]));
+	rgb565DisplayMode = ((!splashFound[true] || splashBmp[true]) && (!splashFound[false] || splashBmp[false]));
 
 	// Display Load Screen
 	if (splashBmp[true]) {
@@ -193,7 +193,7 @@ void loadScreen() {
 		swiDecompressLZSSVram((void*)subLoadBitmap, BG_GFX_SUB, 0, &decompressBiosCallback);
 	}
 
-	if (bothAreBmps) {
+	if ((splashFound[true] || splashFound[false]) && rgb565DisplayMode) {
 		irqSet(IRQ_HBLANK, hBlankHandler);
 		irqEnable(IRQ_HBLANK);
 	}
@@ -595,7 +595,7 @@ int main( int argc, char **argv) {
 
 		loadScreen();
 
-		if (bothAreBmps) {
+		if (rgb565DisplayMode) {
 			for (int i = 0; i < 60 * 3; i++)
 				swiWaitForVBlank();
 		} else {
@@ -649,7 +649,7 @@ int main( int argc, char **argv) {
 			fclose(f_tmd);
 		}
 		int err = runNdsFile("sd:/hiya/BOOTLOADER.NDS", 0, NULL);
-		if (bothAreBmps) {
+		if ((splashFound[true] || splashFound[false]) && rgb565DisplayMode) {
 			while (dmaBusy(0) || dmaBusy(1));
 			irqDisable(IRQ_HBLANK);
 		}
@@ -661,7 +661,7 @@ int main( int argc, char **argv) {
 		consoleInit(NULL, 1, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
 		consoleClear();
 	} else {
-		if (bothAreBmps) {
+		if ((splashFound[true] || splashFound[false]) && rgb565DisplayMode) {
 			while (dmaBusy(0) || dmaBusy(1));
 			irqDisable(IRQ_HBLANK);
 		}
