@@ -12,7 +12,7 @@ static void dsiOnly_setBrightness(u8 screen, s8 bright) {
 	if (bright > 31) {
 		bright = 31;
 	}
-	*(u16*)(0x0400006C + (0x1000 * screen)) = bright + mode;
+	*(vu16*)(0x0400006C + (0x1000 * screen)) = bright + mode;
 }
 
 void dsiOnly(void) {
