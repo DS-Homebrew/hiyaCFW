@@ -593,26 +593,31 @@ int main( int argc, char **argv) {
 
 		loadScreen();
 
-		timerStart(0, ClockDivider_1024, TIMER_FREQ_1024(100), Gif::timerHandler);
-
-		// If both GIFs will loop forever (or are not loaded)
-		// then show for 3s
-		if (gif[true].loopForever() && gif[false].loopForever()) {
+		if (bothAreBmps) {
 			for (int i = 0; i < 60 * 3; i++)
 				swiWaitForVBlank();
 		} else {
-			while (!(gif[true].finished() && gif[false].finished())) {
-				swiWaitForVBlank();
-				scanKeys();
-				u16 down = keysDown();
+			timerStart(0, ClockDivider_1024, TIMER_FREQ_1024(100), Gif::timerHandler);
 
-				for (auto &g : gif) {
-					if (g.waitingForInput() && down)
-						g.resume();
+			// If both GIFs will loop forever (or are not loaded)
+			// then show for 3s
+			if (gif[true].loopForever() && gif[false].loopForever()) {
+				for (int i = 0; i < 60 * 3; i++)
+					swiWaitForVBlank();
+			} else {
+				while (!(gif[true].finished() && gif[false].finished())) {
+					swiWaitForVBlank();
+					scanKeys();
+					u16 down = keysDown();
+
+					for (auto &g : gif) {
+						if (g.waitingForInput() && down)
+							g.resume();
+					}
 				}
 			}
+			timerStop(0);
 		}
-		timerStop(0);
 	}
 
 	if (!dsiSplash) {
