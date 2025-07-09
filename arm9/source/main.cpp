@@ -442,6 +442,10 @@ int main( int argc, char **argv) {
 					iprintf(" Changing from the original\n");
 					iprintf(" will break apps such as DSi\n");
 					iprintf(" Shop and 3DS Transfer Tool.\n");
+					if (regionChar == 'J') {
+						iprintf(" \n");
+						iprintf(" System settings will be reset.\n");
+					}
 					iprintf(" \n");
 					iprintf(" Original region: ");
 					if (regionChar == 'J') {
@@ -554,6 +558,11 @@ int main( int argc, char **argv) {
 			fseek(f_hwinfoS, 0x90, SEEK_SET);
 			fwrite(&newRegion, 1, 1, f_hwinfoS);
 			fclose(f_hwinfoS);
+			if (regionChar == 'J') {
+				// Reset system settings to work around touch inputs not working
+				remove("sd:/shared1/TWLCFG0.dat");
+				remove("sd:/shared1/TWLCFG1.dat");
+			}
 		}
 	}
 
