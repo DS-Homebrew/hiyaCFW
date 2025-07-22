@@ -31,14 +31,12 @@ redistribute it freely, subject to the following restrictions:
 
 #define SD_IRQ_STATUS (*(vu32*)0x400481C)
 
-#include "fifocheck.h"
-
 void VcountHandler() { inputGetAndSend(); }
 
 int main(void) {
 
 	irqInit();
-	
+
 	readUserSettings();
 
 	initClockIRQ();
@@ -48,8 +46,9 @@ int main(void) {
 	SetYtrigger(80);
 
 	installSystemFIFO();
-	
+
 	fifoSendValue32(FIFO_USER_01, SD_IRQ_STATUS);
+	fifoSendValue32(FIFO_USER_02, i2cReadRegister(0x4A, 0x70));
 
 	irqSet(IRQ_VCOUNT, VcountHandler);
 
@@ -60,7 +59,13 @@ int main(void) {
 			fifoSendValue32(FIFO_USER_01, SD_IRQ_STATUS);
 			*(u32*)0x02FFFD0C = 0;
 		} */
-		fifocheck();
+		if(fifoCheckValue32(FIFO_USER_04)) {
+			if(fifoCheckValue32(FIFO_USER_03)) {
+				i2cWriteRegister(0x4A, 0x70, 0x01);	// Bootflag = Warmboot/SkipHealthSafety
+			}
+			// After writing i2c, set FIFO_USER_04 back to 0 so arm7 doesn't repeatedly run i2c code.
+			fifoSendValue32(FIFO_USER_04, 0);
+		}
 		swiWaitForVBlank();
 	}
 }

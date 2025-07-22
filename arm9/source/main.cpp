@@ -566,8 +566,8 @@ int main( int argc, char **argv) {
 		}
 	}
 
-	if (!gotoSettings && (*(u32*)0x02000300 == 0x434E4C54)) {
-		// if "CNLT" is found, then don't show splash
+	if (!gotoSettings && (*(u32*)0x02000300 == 0x434E4C54 || fifoGetValue32(FIFO_USER_02) == 0x01)) {
+		// if "CNLT" is found in RAM, or if warmboot flag is set, then don't show splash
 		splash = false;
 	}
 
